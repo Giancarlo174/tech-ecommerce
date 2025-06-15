@@ -1,0 +1,149 @@
+# Archivos y carpetas generados por el sistema
+.DS_Store
+Thumbs.db
+desktop.ini
+ehthumbs.db
+$RECYCLE.BIN/
+*.stackdump
+
+# Archivos de configuración de entorno
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.backup
+*.env
+.htaccess
+.htpasswd
+
+# Dependencias y paquetes
+/vendor/
+/node_modules/
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+package-lock.json
+composer.lock
+yarn.lock
+.yarn/
+.npm/
+
+# Archivos compilados y de caché
+/dist/
+/build/
+/public/hot
+/public/storage
+/storage/*.key
+/bootstrap/cache/
+.phpunit.result.cache
+.phpunit.cache
+.sass-cache/
+/coverage/
+*.map
+*.min.*
+*.compiled.*
+
+# IDE y editores
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+*.komodoproject
+.komodotools/
+*.code-workspace
+.atom/
+*.swp
+*.swo
+*~
+.project
+.buildpath
+.settings/
+nbproject/
+.eclipse
+*.launch
+*.iml
+
+# Carpetas especiales
+.github/
+
+# Archivos de documentación
+/docs/
+
+# Archivos de logs y depuración
+/logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+error_log
+debug.log
+php_errors.log
+
+# Archivos de caché PHP
+*.php_cs.cache
+/.php_cs
+/.php_cs.dist
+/.php-cs-fixer.cache
+/.phpunit.cache
+.php-version
+
+# Archivos de configuración local de XAMPP
+/xampp-control.ini
+/xampp-usb-lite.exe
+/config/bitnami/
+/apache/logs/
+/apache/conf/extra/
+
+# Archivos de base de datos y dumps
+*.sql
+*.sqlite
+*.sqlite3
+*.db
+*.dump
+/mysql/data/
+/mysql/logs/
+
+# Archivos temporales y de respaldo
+*.bak
+*.swp
+*.tmp
+*~
+*.orig
+*.rej
+*.patch
+.#*
+\#*#
+.*.sw?
+session.save
+.phpstorm.meta.php
+.phpbrewrc
+
+# Archivos de configuración específicos que pueden contener información sensible
+config.php
+config.local.php
+database.php
+settings.php
+db.php
+connect.php
+credentials.php
+secrets.php
+imgur_oauth.php
+
+# Archivos de caché y uploads que no deben ser versionados
+/uploads/
+/cache/
+/temp/
+/tmp/
+*.cache
+.ftpquota
+.sass-cache
+public/uploads/
+
+# Archivos específicos del proyecto que contienen credenciales
+/includes/db.php
+/includes/imgur_oauth.php
+/callback.php
+
+# Scripts y archivos SQL para configuración de base de datos
+/scripts/
