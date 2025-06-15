@@ -1,0 +1,80 @@
+# Archivos y carpetas generados por el sistema
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Archivos de configuración de entorno
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Dependencias y paquetes
+/vendor/
+/node_modules/
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+package-lock.json
+composer.lock
+
+# Archivos compilados y de caché
+/dist/
+/build/
+/public/hot
+/public/storage
+/storage/*.key
+.phpunit.result.cache
+.phpunit.cache
+.sass-cache/
+/coverage/
+
+# IDE y editores
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+*.komodoproject
+.komodotools/
+*.code-workspace
+.atom/
+*.swp
+*.swo
+
+# Carpetas especiales
+.github/
+
+# Archivos de documentación
+docs/
+
+# Archivos de logs
+/logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Archivos de caché PHP
+*.php_cs.cache
+
+# Archivos de configuración local de XAMPP
+/xampp-control.ini
+/xampp-usb-lite.exe
+
+# Archivos de base de datos
+*.sql
+*.sqlite
+*.sqlite3
+*.db
+
+# Archivos de seguridad y respaldos
+*.bak
+*.swp
+*.tmp
+*~
+
+# Archivos de configuración específicos que pueden contener información sensible
+config.php
+database.php
+settings.php
