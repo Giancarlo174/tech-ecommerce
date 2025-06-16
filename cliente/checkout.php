@@ -17,14 +17,52 @@ $message = '';
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $nombre = sanitizeInput($_POST['nombre']);
-    $celular = sanitizeInput($_POST['celular']);
-    $direccion = sanitizeInput($_POST['direccion']);
+    // Array para almacenar errores de validación
+    $errores = [];
+    $datos_validos = [];
     
-    if (empty($nombre) || empty($celular) || empty($direccion)) {
-        $error = 'Todos los campos son obligatorios';
+    // Validar nombre: obligatorio y solo letras y espacios
+    if (!isset($_POST['nombre']) || empty(trim($_POST['nombre']))) {
+        $errores['nombre'] = 'El nombre completo es obligatorio';
+    } elseif (!preg_match('/^[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ\s]+$/', $_POST['nombre'])) {
+        $errores['nombre'] = 'El nombre solo puede contener letras y espacios';
     } else {
-        global $db;
+        $datos_validos['nombre'] = sanitizeInput($_POST['nombre']);
+    }
+    
+    // Validar celular: obligatorio, solo números y mínimo 7 dígitos
+    if (!isset($_POST['celular']) || empty(trim($_POST['celular']))) {
+        $errores['celular'] = 'El número de celular es obligatorio';
+    } elseif (!preg_match('/^\d+$/', $_POST['celular'])) {
+        $errores['celular'] = 'El número de celular debe contener solo dígitos';
+    } elseif (strlen($_POST['celular']) < 7) {
+        $errores['celular'] = 'El número de celular debe tener al menos 7 dígitos';
+    } else {
+        $datos_validos['celular'] = sanitizeInput($_POST['celular']);
+    }
+    
+    // Validar dirección: obligatoria y sin código HTML
+    if (!isset($_POST['direccion']) || empty(trim($_POST['direccion']))) {
+        $errores['direccion'] = 'La dirección de envío es obligatoria';
+    } else {
+        $direccion_limpia = preg_replace('/<[^>]*>|&lt;[^>]*&gt;|javascript:|onerror=|onclick=|onload=/i', '', $_POST['direccion']);
+        $datos_validos['direccion'] = sanitizeInput($direccion_limpia);
+    }
+    
+    // Si hay errores, guardarlos en la sesión y redirigir
+    if (!empty($errores)) {
+        $_SESSION['form_errors'] = $errores;
+        $_SESSION['form_data'] = $_POST;
+        header('Location: ' . BASE_URL . 'cliente/checkout.php');
+        exit;
+    }
+    
+    // Si no hay errores, proceder con el procesamiento
+    $nombre = $datos_validos['nombre'];
+    $celular = $datos_validos['celular'];
+    $direccion = $datos_validos['direccion'];
+    
+    global $db;
         
         try {
             $db->getConnection()->beginTransaction();
@@ -77,7 +115,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $db->getConnection()->rollBack();
             $error = 'Error al procesar el pedido. Inténtalo de nuevo.';
         }
-    }
 }
 ?>
 <!DOCTYPE html>
@@ -250,6 +287,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             min-height: 100px;
         }
         
+        /* Estilos para las validaciones de formularios */
+        .is-invalid {
+            border: 1px solid #dc3545 !important;
+            background-color: #fff8f8;
+        }
+        
+        .text-danger {
+            color: #dc3545;
+            font-size: 12px;
+            display: block;
+            margin-top: 4px;
+        }
+        
+        /* Estilos para el spinner */
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .btn-loading {
+            opacity: 0.8;
+            pointer-events: none;
+        }
+        
         .order-summary {
             background: white;
             border-radius: 12px;
@@ -381,21 +453,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="checkout-container">
             <div class="checkout-form">
                 <h2 class="form-title">Información de Envío</h2>
+                <?php
+                // Inicializar variables para errores
+                $form_errors = $_SESSION['form_errors'] ?? [];
+                $form_data = $_SESSION['form_data'] ?? [];
+                
+                // Limpiar errores y datos de la sesión después de usarlos
+                unset($_SESSION['form_errors'], $_SESSION['form_data']);
+                ?>
                  <!--  Formulario de checkout, action vacío para procesar en la misma página. -->
-                <form method="POST" action="">
+                <form method="POST" action="" id="checkout-form">
                     <div class="form-group">
                         <label for="nombre">Nombre Completo</label>
-                        <input type="text" id="nombre" name="nombre" value="<?php echo htmlspecialchars($_POST['nombre'] ?? ''); ?>" required>
+                        <input type="text" id="nombre" name="nombre" 
+                            value="<?php echo htmlspecialchars(isset($form_data['nombre']) ? $form_data['nombre'] : ($_POST['nombre'] ?? '')); ?>" 
+                            class="<?php echo isset($form_errors['nombre']) ? 'is-invalid' : ''; ?>" required>
+                        <?php if (isset($form_errors['nombre'])): ?>
+                            <small class="text-danger"><?php echo $form_errors['nombre']; ?></small>
+                        <?php endif; ?>
                     </div>
                     <div class="form-group">
                         <label for="celular">Número de Celular</label>
-                        <input type="tel" id="celular" name="celular" value="<?php echo htmlspecialchars($_POST['celular'] ?? ''); ?>" required>
+                        <input type="tel" id="celular" name="celular" 
+                            value="<?php echo htmlspecialchars(isset($form_data['celular']) ? $form_data['celular'] : ($_POST['celular'] ?? '')); ?>" 
+                            class="<?php echo isset($form_errors['celular']) ? 'is-invalid' : ''; ?>" required>
+                        <?php if (isset($form_errors['celular'])): ?>
+                            <small class="text-danger"><?php echo $form_errors['celular']; ?></small>
+                        <?php endif; ?>
                     </div>
                     <div class="form-group">
                         <label for="direccion">Dirección de Envío</label>
-                        <textarea id="direccion" name="direccion" required><?php echo htmlspecialchars($_POST['direccion'] ?? ''); ?></textarea>
+                        <textarea id="direccion" name="direccion" 
+                            class="<?php echo isset($form_errors['direccion']) ? 'is-invalid' : ''; ?>" required><?php echo htmlspecialchars(isset($form_data['direccion']) ? $form_data['direccion'] : ($_POST['direccion'] ?? '')); ?></textarea>
+                        <?php if (isset($form_errors['direccion'])): ?>
+                            <small class="text-danger"><?php echo $form_errors['direccion']; ?></small>
+                        <?php endif; ?>
                     </div>
-                    <button type="submit" class="btn btn-success btn-block">Realizar Pedido</button>
+                    <button type="submit" id="submit-btn" class="btn btn-success btn-block">Realizar Pedido</button>
                 </form>
             </div>
             
@@ -418,5 +512,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
         <?php endif; ?>
     </div>
+    
+    <!-- Script de validaciones -->
+    <script src="<?php echo BASE_URL; ?>cliente/js/checkout-validations.js"></script>
 </body>
 </html>
