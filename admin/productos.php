@@ -665,6 +665,28 @@ $brands = getBrands();
             display: block;
             margin-top: 4px;
         }
+
+        /* Estilos para el spinner de carga */
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .btn-loading {
+            opacity: 0.8;
+            pointer-events: none;
+        }
         
         @media (max-width: 768px) {
             .header {
@@ -806,7 +828,7 @@ $brands = getBrands();
                             <?php endif; ?>
                         </div>
                     </div>
-                    <button type="submit" class="btn btn-primary">Agregar Producto</button>
+                    <button type="submit" class="btn btn-primary" id="submit-btn">Agregar Producto</button>
                 </form>
             </div>
         </div>
@@ -859,7 +881,7 @@ $brands = getBrands();
                                                 <form method="POST" style="display: inline-block;" onsubmit="return confirmDelete(event);">
                                                     <input type="hidden" name="action" value="delete">
                                                     <input type="hidden" name="id" value="<?php echo $product['id']; ?>">
-                                                    <button type="submit" class="btn btn-danger btn-small">Eliminar</button>
+                                                    <button type="submit" class="btn btn-danger btn-small delete-btn" id="delete-btn-<?php echo $product['id']; ?>">Eliminar</button>
                                                 </form>
                                             </div>
                                         </td>
@@ -966,7 +988,7 @@ $brands = getBrands();
                         <?php endif; ?>
                     </div>
                 </div>
-                <button type="submit" class="btn btn-primary">Actualizar Producto</button>
+                <button type="submit" class="btn btn-primary" id="update-btn">Actualizar Producto</button>
                 <button type="button" class="btn btn-secondary" onclick="closeModal('editProductModal')">Cancelar</button>
             </form>
         </div>
@@ -1040,6 +1062,7 @@ $brands = getBrands();
         function confirmDelete(event) {
             event.preventDefault(); // Prevenir el envío inmediato del formulario
             const form = event.target;
+            const deleteButton = form.querySelector('button[type="submit"]');
 
             Swal.fire({
                 title: '¿Estás seguro?',
@@ -1052,6 +1075,21 @@ $brands = getBrands();
                 cancelButtonText: 'Cancelar'
             }).then((result) => {
                 if (result.isConfirmed) {
+                    // Guardar el texto original del botón
+                    const originalText = deleteButton.textContent;
+                    
+                    // Agregar spinner y cambiar texto
+                    deleteButton.innerHTML = '<span class="spinner"></span> Eliminando...';
+                    deleteButton.classList.add('btn-loading');
+                    
+                    // Por si el envío falla por alguna razón, restaurar el botón después de 30 segundos
+                    setTimeout(() => {
+                        if (document.body.contains(deleteButton)) {
+                            deleteButton.innerHTML = originalText;
+                            deleteButton.classList.remove('btn-loading');
+                        }
+                    }, 30000);
+                    
                     form.submit(); // Enviar el formulario si el usuario confirma
                 }
             });

@@ -142,8 +142,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         limpiarError(descripcionInput);
     });
-    
-    // Validación general al enviar el formulario
+      // Validación general al enviar el formulario
     productForm.addEventListener('submit', function(e) {
         let hayError = false;
         
@@ -191,6 +190,25 @@ document.addEventListener('DOMContentLoaded', function() {
             e.preventDefault();
             mostrarError(descripcionInput, 'La descripción es obligatoria');
             return;
+        }
+        
+        // Mostrar spinner de carga
+        const submitBtn = document.getElementById('submit-btn');
+        if (submitBtn) {
+            // Guardar el texto original del botón
+            const originalText = submitBtn.textContent;
+            
+            // Crear y agregar el spinner
+            submitBtn.innerHTML = '<span class="spinner"></span> Procesando...';
+            submitBtn.classList.add('btn-loading');
+            
+            // Por si el envío falla por alguna razón, restaurar el botón después de 30 segundos
+            setTimeout(() => {
+                if (document.body.contains(submitBtn)) {
+                    submitBtn.innerHTML = originalText;
+                    submitBtn.classList.remove('btn-loading');
+                }
+            }, 30000);
         }
         
         // Si llegamos aquí, no hay errores y el formulario se enviará
@@ -368,6 +386,24 @@ document.addEventListener('DOMContentLoaded', function() {
                 e.preventDefault();
                 mostrarError(editDescripcionInput, 'La descripción es obligatoria');
                 return;
+            }
+              // Mostrar spinner de carga
+            const updateBtn = document.getElementById('update-btn');
+            if (updateBtn) {
+                // Guardar el texto original del botón
+                const originalText = updateBtn.textContent;
+                
+                // Crear y agregar el spinner
+                updateBtn.innerHTML = '<span class="spinner"></span> Procesando...';
+                updateBtn.classList.add('btn-loading');
+                
+                // Por si el envío falla por alguna razón, restaurar el botón después de 30 segundos
+                setTimeout(() => {
+                    if (document.body.contains(updateBtn)) {
+                        updateBtn.innerHTML = originalText;
+                        updateBtn.classList.remove('btn-loading');
+                    }
+                }, 30000);
             }
             
             // Si llegamos aquí, no hay errores y el formulario se enviará
