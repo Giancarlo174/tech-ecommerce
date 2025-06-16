@@ -22,63 +22,214 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['action'])) {
         switch ($_POST['action']) {
             case 'add':
-                $nombre = sanitizeInput($_POST['nombre']);
-                $descripcion = sanitizeInput($_POST['descripcion']);
-                $precio = floatval($_POST['precio']);
-                $stock = intval($_POST['stock']);
-                $categoria = intval($_POST['categoria']);
-                $marca = intval($_POST['marca']);
+                // Array para almacenar errores de validación
+                $errores = [];
+                $datos_validos = [];
                 
-                //  URL de imagen por defecto o subida a Imgur.
-                $imagen_url = BASE_URL . 'placeholder.svg?height=300&width=300'; // Usar BASE_URL para placeholder
-                $imagen_deletehash = null; // Inicializar deletehash como null
+                // Validar nombre: obligatorio y solo letras y espacios
+                if (!isset($_POST['nombre']) || empty(trim($_POST['nombre']))) {
+                    $errores['nombre'] = 'El nombre es obligatorio';
+                } elseif (!preg_match('/^[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ\s]+$/', $_POST['nombre'])) {
+                    $errores['nombre'] = 'El nombre solo puede contener letras y espacios';
+                } else {
+                    $datos_validos['nombre'] = sanitizeInput($_POST['nombre']);
+                }
                 
-                if (isset($_FILES['imagen']) && $_FILES['imagen']['error'] === UPLOAD_ERR_OK) {
-                    $uploaded_result = uploadToImgurOAuth($_FILES['imagen']['tmp_name']);
-                    if ($uploaded_result && isset($uploaded_result['link'])) {
-                        $imagen_url = $uploaded_result['link'];
-                        $imagen_deletehash = $uploaded_result['deletehash'] ?? null;
-                    } else {
-                        //  Guardar error si la subida a Imgur falla.
-                        $_SESSION['error'] = 'Error al subir la imagen a Imgur.';
-                        header("Location: " . BASE_URL . "admin/productos.php");
-                        exit;
+                // Validar precio: obligatorio, formato correcto y positivo
+                if (!isset($_POST['precio']) || empty(trim($_POST['precio']))) {
+                    $errores['precio'] = 'El precio es obligatorio';
+                } elseif (!preg_match('/^\d+(\.\d{1,2})?$/', $_POST['precio'])) {
+                    $errores['precio'] = 'El precio debe tener un formato válido (ej: 123 o 123.45)';
+                } elseif (floatval($_POST['precio']) <= 0) {
+                    $errores['precio'] = 'El precio debe ser mayor a 0';
+                } else {
+                    $datos_validos['precio'] = floatval($_POST['precio']);
+                }
+                
+                // Validar stock: obligatorio y entero positivo
+                if (!isset($_POST['stock']) || empty(trim($_POST['stock']))) {
+                    $errores['stock'] = 'El stock es obligatorio';
+                } elseif (!preg_match('/^\d+$/', $_POST['stock'])) {
+                    $errores['stock'] = 'El stock debe ser un número entero positivo';
+                } else {
+                    $datos_validos['stock'] = intval($_POST['stock']);
+                }
+                
+                // Validar categoría
+                if (!isset($_POST['categoria']) || empty($_POST['categoria'])) {
+                    $errores['categoria'] = 'La categoría es obligatoria';
+                } else {
+                    $datos_validos['categoria'] = intval($_POST['categoria']);
+                }
+                
+                // Validar marca
+                if (!isset($_POST['marca']) || empty($_POST['marca'])) {
+                    $errores['marca'] = 'La marca es obligatoria';
+                } else {
+                    $datos_validos['marca'] = intval($_POST['marca']);
+                }
+                
+                // Validar descripción: obligatoria y sin código HTML
+                if (!isset($_POST['descripcion']) || empty(trim($_POST['descripcion']))) {
+                    $errores['descripcion'] = 'La descripción es obligatoria';
+                } else {
+                    $descripcion_limpia = preg_replace('/<[^>]*>|&lt;[^>]*&gt;|javascript:|onerror=|onclick=|onload=/i', '', $_POST['descripcion']);
+                    $datos_validos['descripcion'] = sanitizeInput($descripcion_limpia);
+                }
+                
+                // Validar imagen: obligatoria, tipo y tamaño correctos
+                $imagen_url = BASE_URL . 'placeholder.svg?height=300&width=300'; // Valor por defecto
+                $imagen_deletehash = null;
+                
+                if (!isset($_FILES['imagen']) || $_FILES['imagen']['error'] !== UPLOAD_ERR_OK) {
+                    $errores['imagen'] = 'Debe seleccionar una imagen';
+                } else {
+                    // Verificar tipo de archivo
+                    $allowed_types = ['image/jpeg', 'image/jpg', 'image/png'];
+                    if (!in_array($_FILES['imagen']['type'], $allowed_types)) {
+                        $errores['imagen'] = 'Solo se permiten archivos JPG, JPEG o PNG';
+                    } 
+                    // Verificar tamaño (máximo 2MB)
+                    elseif ($_FILES['imagen']['size'] > 2 * 1024 * 1024) {
+                        $errores['imagen'] = 'El archivo no debe superar los 2MB';
+                    } 
+                    // Si pasa todas las validaciones, proceder con la subida
+                    else {
+                        $uploaded_result = uploadToImgurOAuth($_FILES['imagen']['tmp_name']);
+                        if ($uploaded_result && isset($uploaded_result['link'])) {
+                            $imagen_url = $uploaded_result['link'];
+                            $imagen_deletehash = $uploaded_result['deletehash'] ?? null;
+                        } else {
+                            $errores['imagen'] = 'Error al subir la imagen a Imgur';
+                        }
                     }
                 }
                 
+                // Si hay errores, volver a mostrar el formulario con los errores
+                if (!empty($errores)) {
+                    $_SESSION['form_errors'] = $errores;
+                    $_SESSION['form_data'] = $_POST; // Guardar datos enviados para rellenar el formulario
+                    header("Location: " . BASE_URL . "admin/productos.php");
+                    exit;
+                }
+                
+                // Si no hay errores, proceder con la inserción
                 global $db;
                 $stmt = $db->prepare("INSERT INTO productos (nombre, descripcion, precio, stock, imagen_url, imagen_deletehash, id_categoria, id_marca) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-                if ($stmt->execute([$nombre, $descripcion, $precio, $stock, $imagen_url, $imagen_deletehash, $categoria, $marca])) {
-                    //  Guardar mensaje de éxito en la sesión.
+                if ($stmt->execute([
+                    $datos_validos['nombre'], 
+                    $datos_validos['descripcion'], 
+                    $datos_validos['precio'], 
+                    $datos_validos['stock'], 
+                    $imagen_url, 
+                    $imagen_deletehash, 
+                    $datos_validos['categoria'], 
+                    $datos_validos['marca']
+                ])) {
                     $_SESSION['message'] = 'Producto agregado exitosamente';
                 } else {
-                    //  Guardar mensaje de error en la sesión.
                     $_SESSION['error'] = 'Error al agregar el producto';
                 }
                 header("Location: " . BASE_URL . "admin/productos.php");
                 exit;
                 
             case 'edit':
-                $id = intval($_POST['id']);
-                $nombre = sanitizeInput($_POST['nombre']);
-                $descripcion = sanitizeInput($_POST['descripcion']);
-                $precio = floatval($_POST['precio']);
-                $stock = intval($_POST['stock']);
-                $categoria = intval($_POST['categoria']);
-                $marca = intval($_POST['marca']);
+                // Array para almacenar errores de validación
+                $errores = [];
+                $datos_validos = [];
+                
+                // Validar el ID
+                if (!isset($_POST['id']) || empty($_POST['id']) || !is_numeric($_POST['id'])) {
+                    $errores['id'] = 'ID del producto inválido';
+                } else {
+                    $datos_validos['id'] = intval($_POST['id']);
+                }
+                
+                // Validar nombre: obligatorio y solo letras y espacios
+                if (!isset($_POST['nombre']) || empty(trim($_POST['nombre']))) {
+                    $errores['nombre'] = 'El nombre es obligatorio';
+                } elseif (!preg_match('/^[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ\s]+$/', $_POST['nombre'])) {
+                    $errores['nombre'] = 'El nombre solo puede contener letras y espacios';
+                } else {
+                    $datos_validos['nombre'] = sanitizeInput($_POST['nombre']);
+                }
+                
+                // Validar precio: obligatorio, formato correcto y positivo
+                if (!isset($_POST['precio']) || empty(trim($_POST['precio']))) {
+                    $errores['precio'] = 'El precio es obligatorio';
+                } elseif (!preg_match('/^\d+(\.\d{1,2})?$/', $_POST['precio'])) {
+                    $errores['precio'] = 'El precio debe tener un formato válido (ej: 123 o 123.45)';
+                } elseif (floatval($_POST['precio']) <= 0) {
+                    $errores['precio'] = 'El precio debe ser mayor a 0';
+                } else {
+                    $datos_validos['precio'] = floatval($_POST['precio']);
+                }
+                
+                // Validar stock: obligatorio y entero positivo
+                if (!isset($_POST['stock']) || empty(trim($_POST['stock']))) {
+                    $errores['stock'] = 'El stock es obligatorio';
+                } elseif (!preg_match('/^\d+$/', $_POST['stock'])) {
+                    $errores['stock'] = 'El stock debe ser un número entero positivo';
+                } else {
+                    $datos_validos['stock'] = intval($_POST['stock']);
+                }
+                
+                // Validar categoría
+                if (!isset($_POST['categoria']) || empty($_POST['categoria'])) {
+                    $errores['categoria'] = 'La categoría es obligatoria';
+                } else {
+                    $datos_validos['categoria'] = intval($_POST['categoria']);
+                }
+                
+                // Validar marca
+                if (!isset($_POST['marca']) || empty($_POST['marca'])) {
+                    $errores['marca'] = 'La marca es obligatoria';
+                } else {
+                    $datos_validos['marca'] = intval($_POST['marca']);
+                }
+                
+                // Validar descripción: obligatoria y sin código HTML
+                if (!isset($_POST['descripcion']) || empty(trim($_POST['descripcion']))) {
+                    $errores['descripcion'] = 'La descripción es obligatoria';
+                } else {
+                    $descripcion_limpia = preg_replace('/<[^>]*>|&lt;[^>]*&gt;|javascript:|onerror=|onclick=|onload=/i', '', $_POST['descripcion']);
+                    $datos_validos['descripcion'] = sanitizeInput($descripcion_limpia);
+                }
+                
+                // Si hay errores, volver a mostrar el formulario con los errores
+                if (!empty($errores)) {
+                    $_SESSION['form_errors'] = $errores;
+                    $_SESSION['form_data'] = $_POST; // Guardar datos enviados para rellenar el formulario
+                    header("Location: " . BASE_URL . "admin/productos.php?action=edit&id=" . $_POST['id']);
+                    exit;
+                }
                 
                 global $db;
                 
-                //  Obtenemos el deletehash actual de la imagen para poder eliminarla si hay una nueva
+                // Obtenemos el deletehash actual de la imagen para poder eliminarla si hay una nueva
                 $stmt_get = $db->prepare("SELECT imagen_deletehash FROM productos WHERE id = ?");
-                $stmt_get->execute([$id]);
+                $stmt_get->execute([$datos_validos['id']]);
                 $producto_actual = $stmt_get->fetch();
                 $old_deletehash = $producto_actual['imagen_deletehash'] ?? null;
                 
                 $sql = "UPDATE productos SET nombre = ?, descripcion = ?, precio = ?, stock = ?, id_categoria = ?, id_marca = ?";
-                $params = [$nombre, $descripcion, $precio, $stock, $categoria, $marca];
+                $params = [$datos_validos['nombre'], $datos_validos['descripcion'], $datos_validos['precio'], $datos_validos['stock'], $datos_validos['categoria'], $datos_validos['marca']];
                 
                 if (isset($_FILES['imagen']) && $_FILES['imagen']['error'] === UPLOAD_ERR_OK) {
+                    // Verificar tipo de archivo
+                    $allowed_types = ['image/jpeg', 'image/jpg', 'image/png'];
+                    if (!in_array($_FILES['imagen']['type'], $allowed_types)) {
+                        $_SESSION['error'] = 'Solo se permiten archivos JPG, JPEG o PNG';
+                        header("Location: " . BASE_URL . "admin/productos.php?action=edit&id=" . $datos_validos['id']);
+                        exit;
+                    } 
+                    // Verificar tamaño (máximo 2MB)
+                    elseif ($_FILES['imagen']['size'] > 2 * 1024 * 1024) {
+                        $_SESSION['error'] = 'El archivo no debe superar los 2MB';
+                        header("Location: " . BASE_URL . "admin/productos.php?action=edit&id=" . $datos_validos['id']);
+                        exit;
+                    }
+                    // Continuar con el proceso de subida
                     //  Subir la nueva imagen a Imgur
                     $uploaded_result = uploadToImgurOAuth($_FILES['imagen']['tmp_name']);
                     if ($uploaded_result && isset($uploaded_result['link'])) {
@@ -502,6 +653,18 @@ $brands = getBrands();
         .custom-file-input-container.file-selected .custom-file-input-text {
             color: #212529; /* Texto más oscuro cuando hay un archivo */
         }
+
+        /* Estilos para las validaciones de formularios */
+        .is-invalid {
+            border: 1px solid #dc3545 !important;
+            background-color: #fff8f8;
+        }
+        .text-danger {
+            color: #dc3545;
+            font-size: 12px;
+            display: block;
+            margin-top: 4px;
+        }
         
         @media (max-width: 768px) {
             .header {
@@ -549,53 +712,98 @@ $brands = getBrands();
                 <h2>Agregar Producto</h2>
             </div>
             <div class="card-content">
-                <form method="POST" enctype="multipart/form-data">
+                <?php
+                // Mostrar errores y datos previos si existen en la sesión
+                $form_errors = $_SESSION['form_errors'] ?? [];
+                $form_data = $_SESSION['form_data'] ?? [];
+                
+                // Limpiar errores y datos de la sesión después de usarlos
+                unset($_SESSION['form_errors'], $_SESSION['form_data']);
+                ?>
+                <form method="POST" enctype="multipart/form-data" id="product-form">
                     <input type="hidden" name="action" value="add">
                     <div class="form-grid">
                         <div class="form-group">
                             <label for="nombre">Nombre</label>
-                            <input type="text" id="nombre" name="nombre" required>
+                            <input type="text" id="nombre" name="nombre" required 
+                                value="<?php echo isset($form_data['nombre']) ? htmlspecialchars($form_data['nombre']) : ''; ?>"
+                                class="<?php echo isset($form_errors['nombre']) ? 'is-invalid' : ''; ?>">
+                            <?php if (isset($form_errors['nombre'])): ?>
+                                <small class="text-danger"><?php echo $form_errors['nombre']; ?></small>
+                            <?php endif; ?>
                         </div>
                         <div class="form-group">
                             <label for="precio">Precio</label>
-                            <input type="number" id="precio" name="precio" step="0.01" min="0" required>
+                            <input type="text" id="precio" name="precio" required 
+                                value="<?php echo isset($form_data['precio']) ? htmlspecialchars($form_data['precio']) : ''; ?>"
+                                class="<?php echo isset($form_errors['precio']) ? 'is-invalid' : ''; ?>">
+                            <?php if (isset($form_errors['precio'])): ?>
+                                <small class="text-danger"><?php echo $form_errors['precio']; ?></small>
+                            <?php endif; ?>
                         </div>
                         <div class="form-group">
                             <label for="stock">Stock</label>
-                            <input type="number" id="stock" name="stock" min="0" required>
+                            <input type="text" id="stock" name="stock" required 
+                                value="<?php echo isset($form_data['stock']) ? htmlspecialchars($form_data['stock']) : ''; ?>"
+                                class="<?php echo isset($form_errors['stock']) ? 'is-invalid' : ''; ?>">
+                            <?php if (isset($form_errors['stock'])): ?>
+                                <small class="text-danger"><?php echo $form_errors['stock']; ?></small>
+                            <?php endif; ?>
                         </div>
                         <div class="form-group">
                             <label for="categoria">Categoría</label>
-                            <select id="categoria" name="categoria" required>
+                            <select id="categoria" name="categoria" required
+                                class="<?php echo isset($form_errors['categoria']) ? 'is-invalid' : ''; ?>">
                                 <option value="">Seleccionar categoría</option>
                                 <?php foreach ($categories as $category): ?>
-                                    <option value="<?php echo $category['id']; ?>"><?php echo htmlspecialchars($category['nombre']); ?></option>
+                                    <option value="<?php echo $category['id']; ?>" 
+                                        <?php echo (isset($form_data['categoria']) && $form_data['categoria'] == $category['id']) ? 'selected' : ''; ?>>
+                                        <?php echo htmlspecialchars($category['nombre']); ?>
+                                    </option>
                                 <?php endforeach; ?>
                             </select>
+                            <?php if (isset($form_errors['categoria'])): ?>
+                                <small class="text-danger"><?php echo $form_errors['categoria']; ?></small>
+                            <?php endif; ?>
                         </div>
                         <div class="form-group">
                             <label for="marca">Marca</label>
-                            <select id="marca" name="marca" required>
+                            <select id="marca" name="marca" required
+                                class="<?php echo isset($form_errors['marca']) ? 'is-invalid' : ''; ?>">
                                 <option value="">Seleccionar marca</option>
                                 <?php foreach ($brands as $brand): ?>
-                                    <option value="<?php echo $brand['id']; ?>"><?php echo htmlspecialchars($brand['nombre']); ?></option>
+                                    <option value="<?php echo $brand['id']; ?>"
+                                        <?php echo (isset($form_data['marca']) && $form_data['marca'] == $brand['id']) ? 'selected' : ''; ?>>
+                                        <?php echo htmlspecialchars($brand['nombre']); ?>
+                                    </option>
                                 <?php endforeach; ?>
                             </select>
+                            <?php if (isset($form_errors['marca'])): ?>
+                                <small class="text-danger"><?php echo $form_errors['marca']; ?></small>
+                            <?php endif; ?>
                         </div>
                         <div class="form-group">
                             <label for="imagen">Imagen</label>
                             <!--  Input de archivo personalizado -->
-                            <div class="custom-file-input-container">
-                                <input type="file" id="imagen" name="imagen" accept="image/*" onchange="updateFileName('imagen', 'imagen_file_name_display_text', 'imagen_file_name_display_button')">
+                            <div class="custom-file-input-container <?php echo isset($form_errors['imagen']) ? 'is-invalid' : ''; ?>">
+                                <input type="file" id="imagen" name="imagen" accept="image/jpeg,image/jpg,image/png" 
+                                    onchange="updateFileName('imagen', 'imagen_file_name_display_text', 'imagen_file_name_display_button')">
                                 <div class="custom-file-input-label-wrapper">
                                     <span class="custom-file-input-button-like" id="imagen_file_name_display_button">Seleccionar archivo</span>
                                     <span class="custom-file-input-text" id="imagen_file_name_display_text">Ningún archivo seleccionado</span>
                                 </div>
                             </div>
+                            <?php if (isset($form_errors['imagen'])): ?>
+                                <small class="text-danger"><?php echo $form_errors['imagen']; ?></small>
+                            <?php endif; ?>
                         </div>
                         <div class="form-group full-width">
                             <label for="descripcion">Descripción</label>
-                            <textarea id="descripcion" name="descripcion"></textarea>
+                            <textarea id="descripcion" name="descripcion" 
+                                class="<?php echo isset($form_errors['descripcion']) ? 'is-invalid' : ''; ?>"><?php echo isset($form_data['descripcion']) ? htmlspecialchars($form_data['descripcion']) : ''; ?></textarea>
+                            <?php if (isset($form_errors['descripcion'])): ?>
+                                <small class="text-danger"><?php echo $form_errors['descripcion']; ?></small>
+                            <?php endif; ?>
                         </div>
                     </div>
                     <button type="submit" class="btn btn-primary">Agregar Producto</button>
@@ -673,54 +881,89 @@ $brands = getBrands();
                 <button class="close-modal" onclick="closeModal('editProductModal')">&times;</button>
             </div>
             <form method="POST" enctype="multipart/form-data" id="editProductForm">
+                <?php
+                // Mostrar errores y datos previos si existen en la sesión
+                $form_errors = $_SESSION['form_errors'] ?? [];
+                $form_data = $_SESSION['form_data'] ?? [];
+                
+                // Limpiar errores y datos de la sesión después de usarlos
+                unset($_SESSION['form_errors'], $_SESSION['form_data']);
+                ?>
                 <input type="hidden" name="action" value="edit">
                 <input type="hidden" name="id" id="edit_id">
                 <div class="form-grid">
                     <div class="form-group">
                         <label for="edit_nombre">Nombre</label>
-                        <input type="text" id="edit_nombre" name="nombre" required>
+                        <input type="text" id="edit_nombre" name="nombre" required 
+                            class="<?php echo isset($form_errors['nombre']) ? 'is-invalid' : ''; ?>">
+                        <?php if (isset($form_errors['nombre'])): ?>
+                            <small class="text-danger"><?php echo $form_errors['nombre']; ?></small>
+                        <?php endif; ?>
                     </div>
                     <div class="form-group">
                         <label for="edit_precio">Precio</label>
-                        <input type="number" id="edit_precio" name="precio" step="0.01" min="0" required>
+                        <input type="text" id="edit_precio" name="precio" required
+                            class="<?php echo isset($form_errors['precio']) ? 'is-invalid' : ''; ?>">
+                        <?php if (isset($form_errors['precio'])): ?>
+                            <small class="text-danger"><?php echo $form_errors['precio']; ?></small>
+                        <?php endif; ?>
                     </div>
                     <div class="form-group">
                         <label for="edit_stock">Stock</label>
-                        <input type="number" id="edit_stock" name="stock" min="0" required>
+                        <input type="text" id="edit_stock" name="stock" required
+                            class="<?php echo isset($form_errors['stock']) ? 'is-invalid' : ''; ?>">
+                        <?php if (isset($form_errors['stock'])): ?>
+                            <small class="text-danger"><?php echo $form_errors['stock']; ?></small>
+                        <?php endif; ?>
                     </div>
                     <div class="form-group">
                         <label for="edit_categoria">Categoría</label>
-                        <select id="edit_categoria" name="categoria" required>
+                        <select id="edit_categoria" name="categoria" required
+                            class="<?php echo isset($form_errors['categoria']) ? 'is-invalid' : ''; ?>">
                             <option value="">Seleccionar categoría</option>
                             <?php foreach ($categories as $category): ?>
                                 <option value="<?php echo $category['id']; ?>"><?php echo htmlspecialchars($category['nombre']); ?></option>
                             <?php endforeach; ?>
                         </select>
+                        <?php if (isset($form_errors['categoria'])): ?>
+                            <small class="text-danger"><?php echo $form_errors['categoria']; ?></small>
+                        <?php endif; ?>
                     </div>
                     <div class="form-group">
                         <label for="edit_marca">Marca</label>
-                        <select id="edit_marca" name="marca" required>
+                        <select id="edit_marca" name="marca" required
+                            class="<?php echo isset($form_errors['marca']) ? 'is-invalid' : ''; ?>">
                             <option value="">Seleccionar marca</option>
                             <?php foreach ($brands as $brand): ?>
                                 <option value="<?php echo $brand['id']; ?>"><?php echo htmlspecialchars($brand['nombre']); ?></option>
                             <?php endforeach; ?>
                         </select>
+                        <?php if (isset($form_errors['marca'])): ?>
+                            <small class="text-danger"><?php echo $form_errors['marca']; ?></small>
+                        <?php endif; ?>
                     </div>
                     <div class="form-group">
                         <label for="edit_imagen">Nueva Imagen (opcional)</label>
                         <!--  Input de archivo personalizado para el modal -->
-                        <div class="custom-file-input-container">
-                            <input type="file" id="edit_imagen" name="imagen" accept="image/*" onchange="updateFileName('edit_imagen', 'edit_imagen_file_name_display_text', 'edit_imagen_file_name_display_button')">
+                        <div class="custom-file-input-container <?php echo isset($form_errors['imagen']) ? 'is-invalid' : ''; ?>">
+                            <input type="file" id="edit_imagen" name="imagen" accept="image/jpeg,image/jpg,image/png" onchange="updateFileName('edit_imagen', 'edit_imagen_file_name_display_text', 'edit_imagen_file_name_display_button')">
                             <div class="custom-file-input-label-wrapper">
                                 <span class="custom-file-input-button-like" id="edit_imagen_file_name_display_button">Seleccionar archivo</span>
                                 <span class="custom-file-input-text" id="edit_imagen_file_name_display_text">Ningún archivo seleccionado</span>
                             </div>
                         </div>
+                        <?php if (isset($form_errors['imagen'])): ?>
+                            <small class="text-danger"><?php echo $form_errors['imagen']; ?></small>
+                        <?php endif; ?>
                         <p style="font-size: 0.8rem; margin-top: 0.5rem;">Imagen actual: <img id="current_image_preview" src="" alt="Imagen actual" style="max-width: 100px; max-height: 100px; vertical-align: middle;"></p>
                     </div>
                     <div class="form-group full-width">
                         <label for="edit_descripcion">Descripción</label>
-                        <textarea id="edit_descripcion" name="descripcion"></textarea>
+                        <textarea id="edit_descripcion" name="descripcion"
+                            class="<?php echo isset($form_errors['descripcion']) ? 'is-invalid' : ''; ?>"></textarea>
+                        <?php if (isset($form_errors['descripcion'])): ?>
+                            <small class="text-danger"><?php echo $form_errors['descripcion']; ?></small>
+                        <?php endif; ?>
                     </div>
                 </div>
                 <button type="submit" class="btn btn-primary">Actualizar Producto</button>
@@ -815,5 +1058,8 @@ $brands = getBrands();
             return false; // Asegurar que el formulario no se envíe hasta la confirmación
         }
     </script>
+</div>
+    <!-- Scripts para validaciones de formulario -->
+    <script src="<?php echo BASE_URL; ?>admin/js/validaciones.js"></script>
 </body>
 </html>
