@@ -7,6 +7,41 @@ document.addEventListener('DOMContentLoaded', function() {
     const direccionInput = document.getElementById('direccion');
     const submitBtn = document.getElementById('submit-btn');
     
+    // Cargar datos guardados del localStorage
+    cargarDatosGuardados();
+    
+    // Función para guardar datos en localStorage
+    function guardarDatos() {
+        // Solo guardamos si hay contenido en los campos
+        const datosEnvio = {
+            nombre: nombreInput.value.trim(),
+            celular: celularInput.value.trim(),
+            direccion: direccionInput.value.trim()
+        };
+        
+        localStorage.setItem('datosEnvio', JSON.stringify(datosEnvio));
+    }
+    
+    // Función para cargar datos del localStorage
+    function cargarDatosGuardados() {
+        const datosGuardados = localStorage.getItem('datosEnvio');
+        
+        if (datosGuardados) {
+            try {
+                const datos = JSON.parse(datosGuardados);
+                
+                // Solo establecer valores si los campos están vacíos (para no sobrescribir datos del formulario)
+                if (!nombreInput.value && datos.nombre) nombreInput.value = datos.nombre;
+                if (!celularInput.value && datos.celular) celularInput.value = datos.celular;
+                if (!direccionInput.value && datos.direccion) direccionInput.value = datos.direccion;
+            } catch (error) {
+                console.error('Error al cargar datos guardados:', error);
+                // Si hay error, eliminamos los datos corruptos
+                localStorage.removeItem('datosEnvio');
+            }
+        }
+    }
+    
     // Función para mostrar error
     function mostrarError(elemento, mensaje) {
         // Eliminar mensajes de error previos
@@ -37,8 +72,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         elemento.classList.remove('is-invalid');
     }
-    
-    // Validación del nombre: solo letras y espacios
+      // Validación del nombre: solo letras y espacios
     nombreInput.addEventListener('input', function(e) {
         const valor = e.target.value;
         // Permitir solo letras y espacios (no números ni caracteres especiales)
@@ -46,9 +80,10 @@ document.addEventListener('DOMContentLoaded', function() {
             e.target.value = valor.replace(/[^a-zA-ZáéíóúÁÉÍÓÚüÜñÑ\s]/g, '');
         }
         limpiarError(nombreInput);
+        // Guardar en localStorage
+        guardarDatos();
     });
-    
-    // Validación de celular: solo números
+      // Validación de celular: solo números
     celularInput.addEventListener('input', function(e) {
         const valor = e.target.value;
         
@@ -58,8 +93,9 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         limpiarError(celularInput);
-    });
-      // Validación de dirección: evitar etiquetas HTML y scripts
+        // Guardar en localStorage
+        guardarDatos();
+    });      // Validación de dirección: evitar etiquetas HTML y scripts
     direccionInput.addEventListener('input', function(e) {
         const valor = e.target.value;
         
@@ -69,6 +105,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         limpiarError(direccionInput);
+        // Guardar en localStorage
+        guardarDatos();
     });
     
     // Validación general al enviar el formulario
@@ -107,8 +145,7 @@ document.addEventListener('DOMContentLoaded', function() {
             mostrarError(direccionInput, 'La dirección de envío es obligatoria');
             return;
         }
-        
-        // Mostrar spinner de carga
+          // Mostrar spinner de carga
         if (submitBtn) {
             // Guardar el texto original del botón
             const originalText = submitBtn.textContent;
@@ -124,6 +161,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     submitBtn.classList.remove('btn-loading');
                 }
             }, 30000);
+            
+            // Si el formulario se envía correctamente, se limpia el localStorage
+            // Solo limpiamos si pasamos todas las validaciones
+            localStorage.removeItem('datosEnvio');
         }
         
         // Si llegamos aquí, no hay errores y el formulario se enviará

@@ -149,6 +149,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             color: #1e293b;
             font-size: 1.5rem;
         }
+
+         .header h1 a {
+            color: inherit;
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+        
+        .header h1 a:hover {
+            color: #3b82f6;
+        }
         
         .header-actions {
             display: flex;
@@ -420,7 +430,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </head>
 <body>
     <div class="header">
-        <h1><?php echo SITE_NAME; ?></h1>
+        <h1><a href="<?php echo BASE_URL; ?>cliente/"><?php echo SITE_NAME; ?></a></h1>
         <div class="header-actions">
             <span>Bienvenido, <?php echo htmlspecialchars($_SESSION['user_email']); ?></span>
             <a href="<?php echo BASE_URL; ?>cliente/carrito.php" class="btn btn-primary">
