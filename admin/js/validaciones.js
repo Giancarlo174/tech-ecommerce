@@ -46,14 +46,15 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         elemento.classList.remove('is-invalid');
     }
-    
-    // Validación del nombre: solo letras y espacios
+      // Validación del nombre: evitar etiquetas HTML y scripts
     nombreInput.addEventListener('input', function(e) {
         const valor = e.target.value;
-        // Permitir solo letras y espacios (no números ni caracteres especiales)
-        if (/[^a-zA-ZáéíóúÁÉÍÓÚüÜñÑ\s]/.test(valor)) {
-            e.target.value = valor.replace(/[^a-zA-ZáéíóúÁÉÍÓÚüÜñÑ\s]/g, '');
+        
+        // Reemplazar etiquetas HTML y caracteres sospechosos
+        if (/<[^>]*>|&lt;[^>]*&gt;|javascript:|onerror=|onclick=|onload=/i.test(valor)) {
+            e.target.value = valor.replace(/<[^>]*>|&lt;[^>]*&gt;|javascript:|onerror=|onclick=|onload=/gi, '');
         }
+        
         limpiarError(nombreInput);
     });
     
@@ -217,15 +218,16 @@ document.addEventListener('DOMContentLoaded', function() {
     // =================================
     // Validaciones para formulario de edición
     // =================================
-    
-    // Validación del nombre: solo letras y espacios (edición)
+      // Validación del nombre: evitar etiquetas HTML y scripts (edición)
     if (editNombreInput) {
         editNombreInput.addEventListener('input', function(e) {
             const valor = e.target.value;
-            // Permitir solo letras y espacios (no números ni caracteres especiales)
-            if (/[^a-zA-ZáéíóúÁÉÍÓÚüÜñÑ\s]/.test(valor)) {
-                e.target.value = valor.replace(/[^a-zA-ZáéíóúÁÉÍÓÚüÜñÑ\s]/g, '');
+            
+            // Reemplazar etiquetas HTML y caracteres sospechosos
+            if (/<[^>]*>|&lt;[^>]*&gt;|javascript:|onerror=|onclick=|onload=/i.test(valor)) {
+                e.target.value = valor.replace(/<[^>]*>|&lt;[^>]*&gt;|javascript:|onerror=|onclick=|onload=/gi, '');
             }
+            
             limpiarError(editNombreInput);
         });
     }

@@ -26,13 +26,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $errores = [];
                 $datos_validos = [];
                 
-                // Validar nombre: obligatorio y solo letras y espacios
+                // Validar nombre: obligatorio y sin código HTML
                 if (!isset($_POST['nombre']) || empty(trim($_POST['nombre']))) {
                     $errores['nombre'] = 'El nombre es obligatorio';
-                } elseif (!preg_match('/^[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ\s]+$/', $_POST['nombre'])) {
-                    $errores['nombre'] = 'El nombre solo puede contener letras y espacios';
                 } else {
-                    $datos_validos['nombre'] = sanitizeInput($_POST['nombre']);
+                    $nombre_limpio = preg_replace('/<[^>]*>|&lt;[^>]*&gt;|javascript:|onerror=|onclick=|onload=/i', '', $_POST['nombre']);
+                    $datos_validos['nombre'] = sanitizeInput($nombre_limpio);
                 }
                 
                 // Validar precio: obligatorio, formato correcto y positivo
@@ -145,13 +144,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $datos_validos['id'] = intval($_POST['id']);
                 }
                 
-                // Validar nombre: obligatorio y solo letras y espacios
+                // Validar nombre: obligatorio y sin código HTML
                 if (!isset($_POST['nombre']) || empty(trim($_POST['nombre']))) {
                     $errores['nombre'] = 'El nombre es obligatorio';
-                } elseif (!preg_match('/^[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ\s]+$/', $_POST['nombre'])) {
-                    $errores['nombre'] = 'El nombre solo puede contener letras y espacios';
                 } else {
-                    $datos_validos['nombre'] = sanitizeInput($_POST['nombre']);
+                    $nombre_limpio = preg_replace('/<[^>]*>|&lt;[^>]*&gt;|javascript:|onerror=|onclick=|onload=/i', '', $_POST['nombre']);
+                    $datos_validos['nombre'] = sanitizeInput($nombre_limpio);
                 }
                 
                 // Validar precio: obligatorio, formato correcto y positivo
@@ -241,7 +239,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             $delete_result = deleteFromImgur($old_deletehash);
                             if (!$delete_result) {
                                 //  Si falla la eliminación, lo registramos pero continuamos con la actualización
-                                error_log("Error al eliminar imagen anterior de Imgur para producto ID: $id, deletehash: $old_deletehash");
+                                error_log("Error al eliminar imagen anterior de Imgur para producto ID: " . $datos_validos['id'] . ", deletehash: $old_deletehash");
                             }
                         }
                         
@@ -257,7 +255,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 
                 $sql .= " WHERE id = ?";
-                $params[] = $id;
+                $params[] = $datos_validos['id'];
                 
                 $stmt = $db->prepare($sql);
                 if ($stmt->execute($params)) {
@@ -726,6 +724,7 @@ $brands = getBrands();
         <div class="nav-menu">
             <a href="<?php echo BASE_URL; ?>admin/">Dashboard</a>
             <a href="<?php echo BASE_URL; ?>admin/productos.php" class="active">Productos</a>
+            <a href="<?php echo BASE_URL; ?>admin/categorias.php">Categorías</a>
             <a href="<?php echo BASE_URL; ?>admin/pedidos.php">Pedidos</a>
         </div>
         

@@ -269,6 +269,7 @@ $orders = $stmt->fetchAll();
         <div class="nav-menu">
             <a href="<?php echo BASE_URL; ?>admin/">Dashboard</a>
             <a href="<?php echo BASE_URL; ?>admin/productos.php">Productos</a>
+            <a href="<?php echo BASE_URL; ?>admin/categorias.php">Categorías</a>
             <a href="<?php echo BASE_URL; ?>admin/pedidos.php" class="active">Pedidos</a>
         </div>
         

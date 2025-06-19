@@ -262,11 +262,11 @@ $todayRevenue = $stmt->fetch()['total'] ?? 0;
             <a href="<?php echo BASE_URL; ?>admin/logout.php" class="btn btn-secondary">Cerrar Sesión</a>
         </div>
     </div>
-    
-    <div class="container">
+      <div class="container">
         <div class="nav-menu">
             <a href="<?php echo BASE_URL; ?>admin/" class="active">Dashboard</a>
             <a href="<?php echo BASE_URL; ?>admin/productos.php">Productos</a>
+            <a href="<?php echo BASE_URL; ?>admin/categorias.php">Categorías</a>
             <a href="<?php echo BASE_URL; ?>admin/pedidos.php">Pedidos</a>
         </div>
         
