@@ -61,6 +61,7 @@ $historyItems = $stmt->fetchAll();
     <title>Historial de Compras - <?php echo SITE_NAME; ?></title>
     <!--  SweetAlert2 CDN para notificaciones mejoradas -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>css/chatbot.css">
     <style>
         * {
             margin: 0;
@@ -440,6 +441,22 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 });
+</script>
+
+<script>
+    // Variable global para la URL base del proyecto
+    window.WESTECH_BASE_URL = '<?php echo BASE_URL; ?>';
+</script>
+
+<script src="<?php echo BASE_URL; ?>js/chatbot.js"></script>
+
+<script>
+    // Inicializar el chatbot cuando se carga la página
+    document.addEventListener('DOMContentLoaded', function() {
+        if (typeof WestitoChatbot !== 'undefined') {
+            window.westito = new WestitoChatbot();
+        }
+    });
 </script>
 </body>
 </html>

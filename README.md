@@ -11,6 +11,7 @@ Westech Ecommerce es una plataforma de comercio electrónico desarrollada con PH
 - **Carrito de compra** dinámico con actualizaciones AJAX
 - **Sistema de checkout** para finalización de compras
 - **Historial de pedidos** para clientes
+- **Chatbot Westito** integrado con IA (Gemini API) para asistencia al cliente
 - **Gestión de imágenes** con integración a la API de Imgur (OAuth2)
 - **Autenticación** y registro de usuarios
 
@@ -22,6 +23,7 @@ El proyecto utiliza las siguientes tecnologías:
 - **MySQL** (Base de datos relacional)
 - **Composer** (Gestor de dependencias PHP)
 - **phpdotenv** (Gestión de variables de entorno)
+- **Gemini AI** (API de Google para el chatbot inteligente)
 - **Imgur API con OAuth2** (Almacenamiento y gestión de imágenes)
 - **JavaScript/AJAX** (Interacciones dinámicas en frontend)
 - **HTML/CSS** (Estructura y estilos)
@@ -69,6 +71,9 @@ El proyecto utiliza las siguientes tecnologías:
    IMGUR_REDIRECT_URI=http://localhost/westech-ecommerce/callback.php
    IMGUR_ACCESS_TOKEN=tu_access_token
    IMGUR_REFRESH_TOKEN=tu_refresh_token
+   
+   # Configuración de Gemini AI (para el chatbot Westito)
+   GEMINI_API_KEY=tu_gemini_api_key
    ```
 
 2. **Configurar permisos**:

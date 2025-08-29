@@ -1,0 +1,413 @@
+/* Westito Chatbot Styles */
+.westito-chatbot {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 10000;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.westito-chatbot-toggle {
+    width: 56px;
+    height: 56px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+    border: none;
+    border-radius: 50%;
+    box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    /* Animación de doble saltito cada 5 segundos */
+    animation: westito-bounce-attention 5s ease-in-out infinite;
+}
+
+/* Animación del doble saltito suave */
+@keyframes westito-bounce-attention {
+    0% { transform: translateY(0); }
+    3% { transform: translateY(-5px); }
+    6% { transform: translateY(0); }
+    9% { transform: translateY(-3px); }
+    12% { transform: translateY(0); }
+    100% { transform: translateY(0); }
+}
+
+.westito-chatbot-toggle:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 32px rgba(102, 126, 234, 0.5);
+    /* Pausar la animación cuando se hace hover */
+    animation-play-state: paused;
+}
+
+.westito-chatbot-toggle:active {
+    transform: translateY(0);
+    animation-play-state: paused;
+}
+
+.westito-chatbot-icon {
+    font-size: 24px;
+    color: white;
+    transition: transform 0.3s ease;
+}
+
+.westito-chatbot-toggle.active .westito-chatbot-icon {
+    transform: rotate(180deg);
+}
+
+/* Pausar animación cuando el chatbot está abierto */
+.westito-chatbot-toggle.active {
+    animation-play-state: paused;
+}
+
+.westito-chatbot-widget {
+    position: absolute;
+    bottom: 70px;
+    right: 0;
+    width: 360px;
+    height: 480px;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.15);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(20px) scale(0.95);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.westito-chatbot-widget.open {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0) scale(1);
+}
+
+.westito-chatbot-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+    color: white;
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.westito-chatbot-header-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.westito-avatar {
+    width: 36px;
+    height: 36px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+}
+
+.westito-info h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.westito-info p {
+    margin: 2px 0 0 0;
+    font-size: 12px;
+    opacity: 0.9;
+}
+
+.westito-chatbot-close {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    transition: background 0.2s ease;
+}
+
+.westito-chatbot-close:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.westito-chatbot-messages {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
+    background: #f8fafc;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.westito-chatbot-messages::-webkit-scrollbar {
+    width: 4px;
+}
+
+.westito-chatbot-messages::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.westito-chatbot-messages::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 2px;
+}
+
+.westito-message {
+    max-width: 80%;
+    padding: 12px 16px;
+    border-radius: 16px;
+    font-size: 14px;
+    line-height: 1.5;
+    animation: messageSlideIn 0.3s ease-out;
+    word-wrap: break-word;
+}
+
+@keyframes messageSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.westito-message.bot {
+    align-self: flex-start;
+    background: white;
+    color: #1e293b;
+    border: 1px solid #e2e8f0;
+    border-bottom-left-radius: 4px;
+}
+
+.westito-message.user {
+    align-self: flex-end;
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    color: white;
+    border-bottom-right-radius: 4px;
+}
+
+.westito-typing {
+    align-self: flex-start;
+    background: white;
+    color: #64748b;
+    border: 1px solid #e2e8f0;
+    border-bottom-left-radius: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+}
+
+.westito-typing-dots {
+    display: flex;
+    gap: 4px;
+}
+
+.westito-typing-dot {
+    width: 6px;
+    height: 6px;
+    background: #94a3b8;
+    border-radius: 50%;
+    animation: typingBounce 1.4s infinite ease-in-out;
+}
+
+.westito-typing-dot:nth-child(1) { animation-delay: -0.32s; }
+.westito-typing-dot:nth-child(2) { animation-delay: -0.16s; }
+.westito-typing-dot:nth-child(3) { animation-delay: 0s; }
+
+@keyframes typingBounce {
+    0%, 80%, 100% {
+        transform: scale(0.8);
+        opacity: 0.5;
+    }
+    40% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.westito-chatbot-input-container {
+    padding: 16px 20px;
+    background: white;
+    border-top: 1px solid #e2e8f0;
+}
+
+.westito-chatbot-input-form {
+    display: flex;
+    gap: 12px;
+    align-items: flex-end;
+}
+
+.westito-chatbot-input {
+    flex: 1;
+    border: 1px solid #d1d5db;
+    border-radius: 12px;
+    padding: 12px 16px;
+    font-size: 14px;
+    outline: none;
+    resize: none;
+    max-height: 100px;
+    min-height: 44px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    font-family: inherit;
+}
+
+.westito-chatbot-input:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.westito-chatbot-send {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    border: none;
+    border-radius: 12px;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: white;
+    font-size: 16px;
+}
+
+.westito-chatbot-send:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.westito-chatbot-send:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.westito-welcome-message {
+    text-align: center;
+    color: #64748b;
+    font-size: 13px;
+    padding: 20px;
+    border-bottom: 1px solid #e2e8f0;
+    background: white;
+}
+
+.westito-quick-suggestions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 16px 20px;
+    background: #f8fafc;
+    border-top: 1px solid #e2e8f0;
+}
+
+.westito-suggestion {
+    background: white;
+    border: 1px solid #d1d5db;
+    border-radius: 20px;
+    padding: 8px 12px;
+    font-size: 12px;
+    color: #475569;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.westito-suggestion:hover {
+    background: #3b82f6;
+    color: white;
+    border-color: #3b82f6;
+}
+
+/* Responsive design */
+@media (max-width: 400px) {
+    .westito-chatbot-widget {
+        width: calc(100vw - 32px);
+        height: calc(100vh - 100px);
+        right: 16px;
+        bottom: 70px;
+    }
+    
+    .westito-chatbot {
+        right: 16px;
+        bottom: 16px;
+    }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+    .westito-chatbot-widget {
+        background: #1e293b;
+    }
+    
+    .westito-chatbot-messages {
+        background: #0f172a;
+    }
+    
+    .westito-message.bot {
+        background: #334155;
+        color: #e2e8f0;
+        border-color: #475569;
+    }
+    
+    .westito-typing {
+        background: #334155;
+        color: #94a3b8;
+        border-color: #475569;
+    }
+    
+    .westito-chatbot-input-container {
+        background: #1e293b;
+        border-color: #475569;
+    }
+    
+    .westito-chatbot-input {
+        background: #334155;
+        border-color: #475569;
+        color: #e2e8f0;
+    }
+    
+    .westito-welcome-message {
+        background: #1e293b;
+        color: #94a3b8;
+        border-color: #475569;
+    }
+    
+    .westito-quick-suggestions {
+        background: #0f172a;
+        border-color: #475569;
+    }
+    
+    .westito-suggestion {
+        background: #334155;
+        border-color: #475569;
+        color: #e2e8f0;
+    }
+}
+
+/* Pulse animation for new messages */
+.westito-chatbot-toggle.has-notification {
+    animation: westito-pulse 2s infinite;
+}
+
+@keyframes westito-pulse {
+    0% {
+        box-shadow: 0 8px 24px rgba(59, 130, 246, 0.3);
+    }
+    50% {
+        box-shadow: 0 8px 24px rgba(59, 130, 246, 0.5), 0 0 0 10px rgba(59, 130, 246, 0.1);
+    }
+    100% {
+        box-shadow: 0 8px 24px rgba(59, 130, 246, 0.3);
+    }
+}

@@ -25,6 +25,7 @@ $categories = getCategories();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Catálogo - <?php echo SITE_NAME; ?></title>
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>css/chatbot.css">
     <style>
         * {
             margin: 0;
@@ -553,6 +554,22 @@ $categories = getCategories();
             });
         }
     });
+    </script>
+    
+    <script>
+        // Variable global para la URL base del proyecto
+        window.WESTECH_BASE_URL = '<?php echo BASE_URL; ?>';
+    </script>
+    
+    <script src="<?php echo BASE_URL; ?>js/chatbot.js"></script>
+    
+    <script>
+        // Inicializar el chatbot cuando se carga la página
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof WestitoChatbot !== 'undefined') {
+                window.westito = new WestitoChatbot();
+            }
+        });
     </script>
 </body>
 </html>

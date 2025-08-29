@@ -83,6 +83,7 @@ $cartTotal = getCartTotal();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Carrito de Compras - <?php echo SITE_NAME; ?></title>
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>css/chatbot.css">
     <style>
         * {
             margin: 0;
@@ -591,6 +592,22 @@ $cartTotal = getCartTotal();
             return '$' + price.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
         }
     });
+    </script>
+    
+    <script>
+        // Variable global para la URL base del proyecto
+        window.WESTECH_BASE_URL = '<?php echo BASE_URL; ?>';
+    </script>
+    
+    <script src="<?php echo BASE_URL; ?>js/chatbot.js"></script>
+    
+    <script>
+        // Inicializar el chatbot cuando se carga la página
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof WestitoChatbot !== 'undefined') {
+                window.westito = new WestitoChatbot();
+            }
+        });
     </script>
 </body>
 </html>
