@@ -161,7 +161,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
     </div>
 
+    <!-- Chatbot Westito -->
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>css/chatbot.css">
+    
     <script>
+        // Variable global para la URL base del proyecto
+        window.WESTECH_BASE_URL = '<?php echo BASE_URL; ?>';
+        
         document.addEventListener('DOMContentLoaded', function () {
             <?php if (!empty($error)): ?>
             Swal.fire({
@@ -171,6 +177,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 confirmButtonText: 'Aceptar'
             });
             <?php endif; ?>
+        });
+    </script>
+    
+    <!-- Script del Chatbot -->
+    <script src="<?php echo BASE_URL; ?>js/chatbot.js"></script>
+    
+    <script>
+        // Inicializar el chatbot cuando se carga la página
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof WestitoChatbot !== 'undefined') {
+                window.westito = new WestitoChatbot();
+            }
         });
     </script>
 </body>

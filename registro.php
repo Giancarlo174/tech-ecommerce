@@ -197,5 +197,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <a href="<?php echo BASE_URL; ?>login.php">¿Ya tienes cuenta? Inicia sesión</a>
         </div>
     </div>
+    
+    <!-- Chatbot Westito -->
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>css/chatbot.css">
+    
+    <script>
+        // Variable global para la URL base del proyecto
+        window.WESTECH_BASE_URL = '<?php echo BASE_URL; ?>';
+    </script>
+    
+    <!-- Script del Chatbot -->
+    <script src="<?php echo BASE_URL; ?>js/chatbot.js"></script>
+    
+    <script>
+        // Inicializar el chatbot cuando se carga la página
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof WestitoChatbot !== 'undefined') {
+                window.westito = new WestitoChatbot();
+            }
+        });
+    </script>
 </body>
 </html>

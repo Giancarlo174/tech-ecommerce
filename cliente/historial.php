@@ -449,14 +449,5 @@ document.addEventListener('DOMContentLoaded', function () {
 </script>
 
 <script src="<?php echo BASE_URL; ?>js/chatbot.js"></script>
-
-<script>
-    // Inicializar el chatbot cuando se carga la página
-    document.addEventListener('DOMContentLoaded', function() {
-        if (typeof WestitoChatbot !== 'undefined') {
-            window.westito = new WestitoChatbot();
-        }
-    });
-</script>
 </body>
 </html>

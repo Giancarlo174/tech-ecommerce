@@ -10,10 +10,10 @@
 .westito-chatbot-toggle {
     width: 56px;
     height: 56px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
     border: none;
     border-radius: 50%;
-    box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
+    box-shadow: 0 8px 24px rgba(59, 130, 246, 0.3);
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -21,30 +21,15 @@
     transition: all 0.3s ease;
     position: relative;
     overflow: hidden;
-    /* Animación de doble saltito cada 5 segundos */
-    animation: westito-bounce-attention 5s ease-in-out infinite;
-}
-
-/* Animación del doble saltito suave */
-@keyframes westito-bounce-attention {
-    0% { transform: translateY(0); }
-    3% { transform: translateY(-5px); }
-    6% { transform: translateY(0); }
-    9% { transform: translateY(-3px); }
-    12% { transform: translateY(0); }
-    100% { transform: translateY(0); }
 }
 
 .westito-chatbot-toggle:hover {
     transform: translateY(-2px);
-    box-shadow: 0 12px 32px rgba(102, 126, 234, 0.5);
-    /* Pausar la animación cuando se hace hover */
-    animation-play-state: paused;
+    box-shadow: 0 12px 32px rgba(59, 130, 246, 0.4);
 }
 
 .westito-chatbot-toggle:active {
     transform: translateY(0);
-    animation-play-state: paused;
 }
 
 .westito-chatbot-icon {
@@ -55,11 +40,6 @@
 
 .westito-chatbot-toggle.active .westito-chatbot-icon {
     transform: rotate(180deg);
-}
-
-/* Pausar animación cuando el chatbot está abierto */
-.westito-chatbot-toggle.active {
-    animation-play-state: paused;
 }
 
 .westito-chatbot-widget {
@@ -87,7 +67,7 @@
 }
 
 .westito-chatbot-header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
     color: white;
     padding: 20px;
     display: flex;
