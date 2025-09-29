@@ -24,14 +24,12 @@
   - Interfaz para que los administradores gestionen FAQs
   - Categorización de preguntas por temas (productos, envíos, pagos, etc.)
 
-#### RF-CB-002: FAQs con Videos Tutoriales
-- **Descripción:** Sistema de FAQs  con videos tutoriales para guiar a los clientes en el uso de la plataforma web
+#### RF-CB-002: FAQs con guia de uso
+- **Descripción:** Sistema de FAQs para guiar a los clientes en el uso de la plataforma web
 - **Prioridad:** Alta
 - **Criterios de Aceptación:**
-  - Base de datos de videos tutoriales organizados por categorías (registro, compras, pagos, etc.)
-  - Integración de videos en las respuestas del chatbot cuando sea relevante
-  - Reproductor de video integrado en el chatbot y sección de ayuda
-  - Videos con subtítulos y diferentes calidades de reproducción
+  - Base de datos de guias de uso organizados por categorías (registro, compras, pagos, etc.)
+  - Integración de guias de uso en las respuestas del chatbot cuando sea relevante
 
 ### 2. Reporte de Inventarios y Compras
 
@@ -74,7 +72,6 @@
   - Listado de todas las facturas con filtros
   - Búsqueda por número de factura, cliente o fecha
   - Re-generación de facturas existentes
-  - Anulación de facturas con nota de crédito
 
 ### 4. Envío de Facturas por Correo Electrónico
 
@@ -107,8 +104,6 @@
 - **Criterios de Aceptación:**
   - Dashboard de transacciones con filtros
   - Estados de pago (pendiente, completado, fallido, reembolsado)
-  - Procesamiento de reembolsos
-  - Reportes financieros detallados
 
 ---
 
@@ -121,9 +116,7 @@
 - **Base de datos:** Optimización de queries con índices apropiados
 
 ### RNF-002: Seguridad
-- **Autenticación:** Sistema de tokens JWT para APIs
-- **Autorización:** Control de acceso basado en roles (RBAC)
-- **Encriptación:** HTTPS obligatorio, encriptación AES-256 para datos sensibles
+- **Encriptación:** HASH de contraseñas
 - **Auditoría:** Logs de todas las operaciones críticas
 - **Validación:** Sanitización de todas las entradas de usuario
 
@@ -133,16 +126,15 @@
 
 ### Módulo 1: Chat Bot / FAQs Mejorado
 
-#### CU-CB-001: Consultar FAQ con Video Tutorial
+#### CU-CB-001: Consultar FAQ 
 **Actor:** Cliente  
 **Precondición:** Cliente accede al chatbot  
 **Flujo Principal:**
 1. Cliente escribe pregunta en el chatbot
 2. Sistema busca en base de FAQs usando algoritmo de similitud
-3. Si encuentra respuesta relevante con video tutorial, muestra texto y video
-4. Cliente puede reproducir video tutorial integrado
-5. Si no encuentra respuesta, consulta a modelo de IA entrenado
-6. Sistema registra la consulta para análisis posterior
+3. Si encuentra respuesta relevante muestra texto
+4. Si no encuentra respuesta, consulta a modelo de IA entrenado
+5. Sistema registra la consulta para análisis posterior
 
 **Flujo Alternativo:**
 - 3a. Si FAQ no tiene video asociado, muestra solo respuesta de texto
@@ -154,9 +146,7 @@
 **Flujo Principal:**
 1. Administrador accede al módulo de FAQs
 2. Puede crear, editar o eliminar preguntas y respuestas
-3. Asocia videos tutoriales a FAQs específicas
-4. Asigna categorías a cada FAQ (registro, compras, pagos, etc.)
-5. Configura subtítulos y calidades de video
+3. Asigna categorías a cada FAQ (registro, compras, pagos, etc.)
 6. Sistema actualiza la base de conocimiento del chatbot
 
 ### Módulo 2: Reporte de Inventarios y Compras

@@ -97,6 +97,11 @@ $orders = $stmt->fetchAll();
         .btn-small {
             padding: 0.25rem 0.5rem;
             font-size: 0.875rem;
+            margin-right: 0.25rem;
+        }
+        
+        .btn-small:last-child {
+            margin-right: 0;
         }
         
         .container {
@@ -239,6 +244,23 @@ $orders = $stmt->fetchAll();
             border-bottom: none;
         }
         
+        .order-items-list {
+            list-style: none;
+            padding: 0;
+            margin: 1rem 0;
+        }
+        
+        .order-summary {
+            background: #f8fafc;
+            padding: 1rem;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+        }
+        
+        .order-summary p {
+            margin: 0.5rem 0;
+        }
+        
         @media (max-width: 768px) {
             .header {
                 padding: 1rem;
@@ -275,7 +297,12 @@ $orders = $stmt->fetchAll();
         
         <div class="card">
             <div class="card-header">
-                <h2>Lista de Pedidos</h2>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <h2>Lista de Pedidos</h2>
+                    <a href="<?php echo BASE_URL; ?>admin/reporte_pedidos_pdf.php" class="btn btn-primary" target="_blank">
+                        📄 Generar Reporte PDF
+                    </a>
+                </div>
             </div>
             <div class="card-content">
                 <div class="table-container">
@@ -302,6 +329,7 @@ $orders = $stmt->fetchAll();
                                     <td><?php echo date('d/m/Y H:i', strtotime($order['creado_en'])); ?></td>
                                     <td>
                                         <button onclick="viewOrderDetails(<?php echo $order['id']; ?>)" class="btn btn-primary btn-small">Ver Detalles</button>
+                                        <a href="<?php echo BASE_URL; ?>admin/factura_pdf.php?order_id=<?php echo $order['id']; ?>" class="btn btn-secondary btn-small" target="_blank">🖨️ Factura</a>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
@@ -317,7 +345,10 @@ $orders = $stmt->fetchAll();
         <div class="modal-content">
             <div class="modal-header">
                 <h3>Detalles del Pedido</h3>
-                <button class="close-modal" onclick="closeOrderModal()">&times;</button>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <a id="printInvoiceBtn" href="#" class="btn btn-primary btn-small" target="_blank" style="display: none;">🖨️ Imprimir Factura</a>
+                    <button class="close-modal" onclick="closeOrderModal()">&times;</button>
+                </div>
             </div>
             <div id="orderDetails">
                 <!-- Los detalles del pedido se cargarán aquí -->
@@ -329,9 +360,15 @@ $orders = $stmt->fetchAll();
         async function viewOrderDetails(orderId) {
             const orderDetailsDiv = document.getElementById('orderDetails');
             const modalTitle = document.querySelector('#orderModal .modal-header h3');
+            const printInvoiceBtn = document.getElementById('printInvoiceBtn');
             
             modalTitle.textContent = `Detalles del Pedido #${orderId}`;
             orderDetailsDiv.innerHTML = '<p>Cargando detalles...</p>';
+            
+            // Configurar el enlace de la factura
+            printInvoiceBtn.href = `<?php echo BASE_URL; ?>admin/factura_pdf.php?order_id=${orderId}`;
+            printInvoiceBtn.style.display = 'inline-block';
+            
             document.getElementById('orderModal').classList.add('active');
 
             try {
