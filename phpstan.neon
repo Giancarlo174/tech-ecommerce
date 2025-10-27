@@ -1,0 +1,11 @@
+parameters:
+  level: 9
+  paths:
+    - phpstan-bootstrap.php
+    - includes
+    - admin
+    - cliente
+    - api
+    - index.php
+    - login.php
+    - registro.php
