@@ -267,7 +267,7 @@ class WestitoChatbot {
         const messagesContainer = document.getElementById('westito-messages');
         const messageElement = document.createElement('div');
         messageElement.className = `westito-message ${sender}`;
-        messageElement.textContent = message;
+        messageElement.innerHTML = message;
 
         messagesContainer.appendChild(messageElement);
         this.scrollToBottom();

@@ -48,11 +48,80 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $direccion_limpia = preg_replace('/<[^>]*>|&lt;[^>]*&gt;|javascript:|onerror=|onclick=|onload=/i', '', $_POST['direccion']);
         $datos_validos['direccion'] = sanitizeInput($direccion_limpia);
     }
+
+    //NUEVAS VALIDACIONES DE MÉTODO DE PAGO -- JOHAB
+
+    // Validar método de pago (ficticio: tarjeta / yappy)
+    if (!isset($_POST['payment_method']) || empty($_POST['payment_method'])) {
+        $errores['payment_method'] = 'Seleccione un método de pago';
+    } else {
+        $pm = $_POST['payment_method'];
+        if ($pm === 'tarjeta') {
+            // Validar datos de tarjeta (ficticios)
+            $card = $_POST['card_number'] ?? '';
+            $exp = $_POST['card_expiry'] ?? '';
+            $cvv = $_POST['card_cvv'] ?? '';
+            
+            // Ejemplo válido: '4111 1111 1111 1111'
+            if (empty(trim($card))) {
+                $errores['card_number'] = 'El número de tarjeta es obligatorio';
+            } elseif (!preg_match('/^\d{13,19}$/', preg_replace('/\s+/', '', $card))) {
+                $errores['card_number'] = 'Número de tarjeta inválido';
+            } else {
+                // Guardar máscara (no almacenar número completo en sesión)
+                $masked = preg_replace('/\d(?=\d{4})/', '*', preg_replace('/\s+/', '', $card));
+                $datos_validos['card_mask'] = $masked;
+            }
+
+            // Ejemplo válido: '12/28'
+            if (empty(trim($exp))) {
+                $errores['card_expiry'] = 'La fecha de expiración es obligatoria';
+            } elseif (!preg_match('/^(0[1-9]|1[0-2])\/([0-9]{2})$/', $exp)) {
+                $errores['card_expiry'] = 'Fecha de expiración inválida (MM/YY)';
+            } else {
+                $datos_validos['card_expiry'] = sanitizeInput($exp);
+            }
+
+            // Ejemplo válido: '123' 
+            if (empty(trim($cvv))) {
+                $errores['card_cvv'] = 'El código CVV es obligatorio';
+            } elseif (!preg_match('/^\d{3}$/', $cvv)) {
+                $errores['card_cvv'] = 'CVV inválido (3 dígitos)';
+            } else {
+                $datos_validos['card_cvv'] = '***'; // no almacenar CVV real
+            }
+
+            $datos_validos['metodo_pago'] = 'tarjeta';
+
+        // Ejemplo válido: '12345678'
+        } elseif ($pm === 'yappy') {
+            $yappy = $_POST['yappy_id'] ?? '';
+            if (empty(trim($yappy))) {
+                $errores['yappy_id'] = 'El identificador de Yappy es obligatorio';
+            } elseif (!preg_match('/^\d{7,20}$/', $yappy)) {
+                $errores['yappy_id'] = 'Identificador de Yappy inválido';
+            } else {
+                $datos_validos['yappy_id'] = sanitizeInput($yappy);
+            }
+            $datos_validos['metodo_pago'] = 'yappy';
+        } else {
+            $errores['payment_method'] = 'Método de pago no válido';
+        }
+    }
     
     // Si hay errores, guardarlos en la sesión y redirigir
     if (!empty($errores)) {
+        // Evitar guardar número de tarjeta completo en sesión: enmascarar si viene
+        $preserve = $_POST;
+        if (isset($preserve['card_number'])) {
+            $preserve['card_number'] = preg_replace('/\d(?=\d{4})/', '*', preg_replace('/\s+/', '', $preserve['card_number']));
+        }
+        if (isset($preserve['card_cvv'])) {
+            unset($preserve['card_cvv']);
+        }
+
         $_SESSION['form_errors'] = $errores;
-        $_SESSION['form_data'] = $_POST;
+        $_SESSION['form_data'] = $preserve;
         header('Location: ' . BASE_URL . 'cliente/checkout.php');
         exit;
     }
@@ -61,11 +130,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $nombre = $datos_validos['nombre'];
     $celular = $datos_validos['celular'];
     $direccion = $datos_validos['direccion'];
+    $metodoPago = $datos_validos['metodo_pago'] ?? 'desconocido';
     
     global $db;
         
         try {
-            $db->getConnection()->beginTransaction();
+            $db->beginTransaction();
             
             // Verificar stock denuevo antes de procesar el pedido
             $stockError = false;
@@ -81,7 +151,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             
             if ($stockError) {
-                $db->getConnection()->rollBack();
+                $db->rollBack();
                 $error = 'Algunos productos no tienen suficiente stock disponible';
             } else {
                 // Crear el pedido
@@ -104,15 +174,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $stmt->execute([$_SESSION['user_id'], $item['product']['id'], $item['quantity']]);
                 }
                 
-                $db->getConnection()->commit();
-                
-                // Limpiar el carrito de compras
-                $_SESSION['cart'] = [];
-                
-                $message = "¡Pedido realizado exitosamente! Tu número de pedido es: #$orderId";
+                $db->commit();
+            
+            // --- INICIO DE LA INTEGRACIÓN DE ENVÍO DE FACTURA ---
+            
+            $invoiceApiUrl = BASE_URL . 'api/send_invoice_email.php';
+            $orderIdForApi = $orderId; // El ID del pedido que se acaba de crear
+
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, $invoiceApiUrl);
+            curl_setopt($ch, CURLOPT_POST, 1);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, "order_id=$orderIdForApi");
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true); 
+            curl_setopt($ch, CURLOPT_TIMEOUT, 5);
+            curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5); 
+
+            $apiResponse = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $curlError = curl_error($ch);
+            curl_close($ch);
+
+            if ($httpCode != 200) {
+                // Si falla el envío de email, el pedido ya está confirmado. Solo logueamos el error.
+                error_log("Error al enviar factura #$orderId: HTTP $httpCode - $curlError - $apiResponse");
             }
-        } catch (Exception $e) {
-            $db->getConnection()->rollBack();
+            //  FIN DE LA INTEGRACIÓN DE ENVÍO DE FACTURA 
+           
+            
+            // Limpiar el carrito de compras
+            $_SESSION['cart'] = [];
+            
+            // Mostrar método de pago elegido en el mensaje (ficticio)
+            $metodoTexto = $metodoPago === 'tarjeta' ? 'Tarjeta de Crédito' : ($metodoPago === 'yappy' ? 'Yappy' : 'Desconocido');
+            $message = "¡Pedido realizado exitosamente! Tu número de pedido es: #$orderId. Método de pago: $metodoTexto. Se ha enviado una copia de la factura a tu correo electrónico.";
+        }
+    } catch (Exception $e) {
+            $db->rollBack();
             $error = 'Error al procesar el pedido. Inténtalo de nuevo.';
         }
 }
@@ -245,6 +342,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             color: #166534;
             border: 1px solid #bbf7d0;
         }
+
+        /* Confirmation card */
+        .order-confirmation { display:flex; justify-content:center; margin:1.5rem 0; }
+        .confirm-card { background: #fff; border-radius:12px; box-shadow:0 10px 30px rgba(2,6,23,0.08); display:flex; gap:1.25rem; padding:1.5rem; max-width:900px; width:100%; align-items:center; }
+        .confirm-icon { flex:0 0 80px; display:flex; align-items:center; justify-content:center; }
+        .confirm-body { flex:1; }
+        .confirm-body h2 { margin-bottom:0.25rem; color:#0f172a; }
+        .confirm-body .muted { margin-bottom:0.75rem; color:#475569; }
+        .order-info { display:flex; gap:1.5rem; flex-wrap:wrap; margin-bottom:1rem; color:#334155; }
+        .order-items { background:#f8fafc; padding:0.75rem; border-radius:8px; margin-bottom:1rem; }
+        .order-items h4 { margin:0 0 0.5rem 0; }
+        .order-items ul { list-style:none; margin:0; padding:0; }
+        .order-items li { display:flex; justify-content:space-between; gap:1rem; padding:0.35rem 0; border-bottom:1px dashed #e6eef7; }
+        .order-items li:last-child { border-bottom: none; }
+        .order-total { text-align:right; margin-top:0.5rem; font-size:1.05rem; }
+        .confirm-actions { display:flex; gap:0.75rem; margin-top:0.75rem; }
         
         .message.error {
             background: #fef2f2;
@@ -411,7 +524,61 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             color: white;
             font-size: 2rem;
         }
-        
+
+        /* estilos para selección por imagen en métodos de pago */
+        .payment-options {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            margin-top: 0.5rem;
+        }
+        .payment-options input[type="radio"] {
+            /* mantener accesible pero oculto visualmente */
+            position: absolute;
+            opacity: 0;
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
+            clip: rect(1px, 1px, 1px, 1px);
+            white-space: nowrap;
+        }
+        .payment-option {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 8px;
+            border: 2px solid transparent;
+            border-radius: 8px;
+            background: #ffffff;
+            cursor: pointer;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.06s ease;
+        }
+        .payment-option img {
+            display: block;
+            max-height: 40px;
+            max-width: 120px;
+            object-fit: contain;
+        }
+        /* estilo cuando el radio está seleccionado */
+        .payment-options input[type="radio"]:checked + .payment-option {
+            border-color: #3b82f6;
+            box-shadow: 0 4px 10px rgba(59,130,246,0.12);
+            transform: translateY(-2px);
+        }
+        /* foco por teclado */
+        .payment-options input[type="radio"]:focus + .payment-option {
+            outline: 3px solid rgba(59,130,246,0.18);
+            outline-offset: 2px;
+        }
+        /* clase accesible para texto oculto */
+        .sr-only {
+            position: absolute !important;
+            height: 1px; width: 1px;
+            overflow: hidden;
+            clip: rect(1px, 1px, 1px, 1px);
+            white-space: nowrap;
+        }
+
         @media (max-width: 768px) {
             .header {
                 padding: 1rem;
@@ -451,10 +618,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <!-- ... Mensajes de error/éxito ... -->
 
         <?php if (!empty($message)): ?>
-            <div class="message success"><?php echo $message; ?></div>
-            <div class="text-center">
-                <a href="<?php echo BASE_URL; ?>cliente/historial.php" class="btn btn-primary">Ver Historial de Pedidos</a>
-                <a href="<?php echo BASE_URL; ?>cliente/" class="btn btn-secondary">Seguir Comprando</a>
+            <div class="order-confirmation" role="status" aria-live="polite">
+                <div class="confirm-card">
+                    <div class="confirm-icon">
+                        <!-- check mark -->
+                        <svg width="56" height="56" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                            <circle cx="12" cy="12" r="12" fill="#10B981"/>
+                            <path d="M7 12.5l2.5 2.5L17 8" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                    <div class="confirm-body">
+                        <h2>¡Pedido realizado!</h2>
+                        <p class="muted">Gracias por tu compra. Detalles del pedido:</p>
+                        <div class="order-info">
+                            <div><strong>Número de pedido:</strong> #<?php echo htmlspecialchars($orderId ?? '—'); ?></div>
+                            <div><strong>Método de pago:</strong> <?php echo htmlspecialchars($metodoTexto ?? '—'); ?></div>
+                            <div><strong>Factura:</strong> Se ha enviado una copia a tu correo.</div>
+                        </div>
+
+                        <div class="order-items">
+                            <h4>Resumen</h4>
+                            <?php if (!empty($cartItems)): ?>
+                                <ul>
+                                <?php foreach ($cartItems as $it): ?>
+                                    <li>
+                                        <span class="item-name"><?php echo htmlspecialchars($it['product']['nombre']); ?></span>
+                                        <span class="item-qty">x<?php echo (int)$it['quantity']; ?></span>
+                                        <span class="item-price"><?php echo formatPrice($it['subtotal']); ?></span>
+                                    </li>
+                                <?php endforeach; ?>
+                                </ul>
+                            <?php endif; ?>
+                            <div class="order-total"><strong>Total:</strong> <?php echo formatPrice($cartTotal); ?></div>
+                        </div>
+
+                        <div class="confirm-actions">
+                            <a href="<?php echo BASE_URL; ?>cliente/historial.php" class="btn btn-primary">Ver historial</a>
+                            <a href="<?php echo BASE_URL; ?>cliente/" class="btn btn-secondary">Seguir comprando</a>
+                        </div>
+                    </div>
+                </div>
             </div>
         <?php elseif (!empty($error)): ?>
             <div class="message error"><?php echo $error; ?></div>
@@ -500,6 +703,75 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <small class="text-danger"><?php echo $form_errors['direccion']; ?></small>
                         <?php endif; ?>
                     </div>
+
+                    <!-- Sección de método de pago (ficticio) -->
+                    <div class="form-group">
+                        <label>Método de Pago</label>
+                        <div class="payment-options">
+                            <input type="radio" id="pm-tarjeta" name="payment_method" value="tarjeta"
+                                <?php echo ((isset($form_data['payment_method']) && $form_data['payment_method'] === 'tarjeta') || ($_POST['payment_method'] ?? '') === 'tarjeta') ? 'checked' : ''; ?>>
+                            <label for="pm-tarjeta" class="payment-option" title="Tarjeta de Crédito (ficticio)">
+                                <img src="<?php echo BASE_URL; ?>IMAGENES/tarjeta.jpg" alt="Tarjeta de Crédito">
+                                <span class="sr-only">Tarjeta de Crédito</span>
+                            </label>
+
+                            <input type="radio" id="pm-yappy" name="payment_method" value="yappy"
+                                <?php echo ((isset($form_data['payment_method']) && $form_data['payment_method'] === 'yappy') || ($_POST['payment_method'] ?? '') === 'yappy') ? 'checked' : ''; ?>>
+                            <label for="pm-yappy" class="payment-option" title="Yappy (ficticio)">
+                                <img src="<?php echo BASE_URL; ?>IMAGENES/yappy.png" alt="Yappy">
+                                <span class="sr-only">Yappy</span>
+                            </label>
+                        </div>
+                        <?php if (isset($form_errors['payment_method'])): ?>
+                            <small class="text-danger"><?php echo $form_errors['payment_method']; ?></small>
+                        <?php endif; ?>
+                    </div>
+
+                    <!-- Campos de tarjeta (solo visibles cuando se elige tarjeta) -->
+                    <div id="tarjeta-fields" style="display: none;">
+                        <div class="form-group">
+                            <label for="card_number">Número de Tarjeta</label>
+                            <input type="text" id="card_number" name="card_number" inputmode="numeric"
+                                value="<?php echo htmlspecialchars($form_data['card_number'] ?? ($_POST['card_number'] ?? '')); ?>" 
+                                class="<?php echo isset($form_errors['card_number']) ? 'is-invalid' : ''; ?>">
+                            <?php if (isset($form_errors['card_number'])): ?>
+                                <small class="text-danger"><?php echo $form_errors['card_number']; ?></small>
+                            <?php endif; ?>
+                        </div>
+                        <div class="form-group" style="display:flex; gap:1rem;">
+                            <div style="flex:1;">
+                                <label for="card_expiry">Expiración (MM/AA)</label>
+                                <input type="text" id="card_expiry" name="card_expiry"
+                                    value="<?php echo htmlspecialchars($form_data['card_expiry'] ?? ($_POST['card_expiry'] ?? '')); ?>" 
+                                    class="<?php echo isset($form_errors['card_expiry']) ? 'is-invalid' : ''; ?>">
+                                <?php if (isset($form_errors['card_expiry'])): ?>
+                                    <small class="text-danger"><?php echo $form_errors['card_expiry']; ?></small>
+                                <?php endif; ?>
+                            </div>
+                            <div style="width:120px;">
+                                <label for="card_cvv">CVV</label>
+                                <input type="text" id="card_cvv" name="card_cvv" inputmode="numeric"
+                                    value="" class="<?php echo isset($form_errors['card_cvv']) ? 'is-invalid' : ''; ?>">
+                                <?php if (isset($form_errors['card_cvv'])): ?>
+                                    <small class="text-danger"><?php echo $form_errors['card_cvv']; ?></small>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Campos de Yappy -->
+                    <div id="yappy-fields" style="display: none;">
+                        <div class="form-group">
+                            <label for="yappy_id">Identificador Yappy</label>
+                            <input type="text" id="yappy_id" name="yappy_id"
+                                value="<?php echo htmlspecialchars($form_data['yappy_id'] ?? ($_POST['yappy_id'] ?? '')); ?>" 
+                                class="<?php echo isset($form_errors['yappy_id']) ? 'is-invalid' : ''; ?>">
+                            <?php if (isset($form_errors['yappy_id'])): ?>
+                                <small class="text-danger"><?php echo $form_errors['yappy_id']; ?></small>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+
                     <button type="submit" id="submit-btn" class="btn btn-success btn-block">Realizar Pedido</button>
                 </form>
             </div>
@@ -527,6 +799,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <script>
         // Variable global para la URL base del proyecto
         window.WESTECH_BASE_URL = '<?php echo BASE_URL; ?>';
+    </script>
+
+    <script>
+        // Mostrar/ocultar campos de pago según selección
+        (function(){
+            const radioTarjeta = document.querySelector('input[name="payment_method"][value="tarjeta"]');
+            const radioYappy = document.querySelector('input[name="payment_method"][value="yappy"]');
+            const tarjetaFields = document.getElementById('tarjeta-fields');
+            const yappyFields = document.getElementById('yappy-fields');
+
+            function toggleFields() {
+                const selected = document.querySelector('input[name="payment_method"]:checked');
+                if (!selected) {
+                    tarjetaFields.style.display = 'none';
+                    yappyFields.style.display = 'none';
+                    return;
+                }
+                if (selected.value === 'tarjeta') {
+                    tarjetaFields.style.display = 'block';
+                    yappyFields.style.display = 'none';
+                } else if (selected.value === 'yappy') {
+                    tarjetaFields.style.display = 'none';
+                    yappyFields.style.display = 'block';
+                }
+            }
+
+            document.querySelectorAll('input[name="payment_method"]').forEach(r => r.addEventListener('change', toggleFields));
+            // Ejecutar al cargar para respetar datos en sesión
+            toggleFields();
+        })();
     </script>
     
     <!-- Script de validaciones -->

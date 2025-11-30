@@ -686,7 +686,26 @@ $brands = getBrands();
             pointer-events: none;
         }
         
+        /* Estilos para el preview de imagen */
+        .image-preview-container {
+            margin-top: 0.5rem;
+            text-align: center;
+        }
+        
+        .image-preview {
+            max-width: 200px;
+            max-height: 200px;
+            border-radius: 8px;
+            border: 2px solid #e2e8f0;
+            object-fit: cover;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
         @media (max-width: 768px) {
+            .image-preview {
+                max-width: 150px;
+                max-height: 150px;
+            }
             .header {
                 padding: 1rem;
                 flex-direction: column;
@@ -817,6 +836,9 @@ $brands = getBrands();
                             <?php if (isset($form_errors['imagen'])): ?>
                                 <small class="text-danger"><?php echo $form_errors['imagen']; ?></small>
                             <?php endif; ?>
+                            <div id="imagen_preview_container" class="image-preview-container" style="display: none;">
+                                <img id="imagen_preview" class="image-preview" alt="Preview de imagen">
+                            </div>
                         </div>
                         <div class="form-group full-width">
                             <label for="descripcion">Descripción</label>
@@ -976,6 +998,9 @@ $brands = getBrands();
                         <?php if (isset($form_errors['imagen'])): ?>
                             <small class="text-danger"><?php echo $form_errors['imagen']; ?></small>
                         <?php endif; ?>
+                        <div id="edit_imagen_preview_container" class="image-preview-container" style="display: none;">
+                            <img id="edit_imagen_preview" class="image-preview" alt="Preview de nueva imagen">
+                        </div>
                         <p style="font-size: 0.8rem; margin-top: 0.5rem;">Imagen actual: <img id="current_image_preview" src="" alt="Imagen actual" style="max-width: 100px; max-height: 100px; vertical-align: middle;"></p>
                     </div>
                     <div class="form-group full-width">
@@ -1033,6 +1058,18 @@ $brands = getBrands();
                     document.getElementById('edit_categoria').value = this.dataset.categoria;
                     document.getElementById('edit_marca').value = this.dataset.marca;
                     currentImagePreview.src = this.dataset.imagen_url ? this.dataset.imagen_url : '<?php echo BASE_URL . "placeholder.svg?height=60&width=60"; ?>';
+                    
+                    // Resetear el input de archivo y ocultar preview
+                    const editImagenInput = document.getElementById('edit_imagen');
+                    const editPreviewContainer = document.getElementById('edit_imagen_preview_container');
+                    const editTextDisplay = document.getElementById('edit_imagen_file_name_display_text');
+                    const editContainer = editImagenInput.closest('.custom-file-input-container');
+                    
+                    editImagenInput.value = '';
+                    if (editTextDisplay) editTextDisplay.textContent = 'Ningún archivo seleccionado';
+                    if (editContainer) editContainer.classList.remove('file-selected');
+                    if (editPreviewContainer) editPreviewContainer.style.display = 'none';
+                    
                     editModal.classList.add('active');
                 });
             });
@@ -1040,6 +1077,19 @@ $brands = getBrands();
 
         function closeModal(modalId) {
             document.getElementById(modalId).classList.remove('active');
+            
+            // Resetear inputs de archivo cuando se cierra el modal de edición
+            if (modalId === 'editProductModal') {
+                const editImagenInput = document.getElementById('edit_imagen');
+                const editPreviewContainer = document.getElementById('edit_imagen_preview_container');
+                const editTextDisplay = document.getElementById('edit_imagen_file_name_display_text');
+                const editContainer = editImagenInput.closest('.custom-file-input-container');
+                
+                editImagenInput.value = '';
+                if (editTextDisplay) editTextDisplay.textContent = 'Ningún archivo seleccionado';
+                if (editContainer) editContainer.classList.remove('file-selected');
+                if (editPreviewContainer) editPreviewContainer.style.display = 'none';
+            }
         }
 
         //  Función para actualizar el nombre del archivo seleccionado en el input personalizado.
@@ -1049,11 +1099,34 @@ $brands = getBrands();
             const container = input.closest('.custom-file-input-container');
 
             if (input.files && input.files.length > 0) {
-                textDisplay.textContent = input.files[0].name;
+                const file = input.files[0];
+                textDisplay.textContent = file.name;
                 if (container) container.classList.add('file-selected');
+
+                // Mostrar preview de imagen
+                const previewContainerId = inputId.replace('imagen', 'imagen_preview_container');
+                const previewId = inputId.replace('imagen', 'imagen_preview');
+                const previewContainer = document.getElementById(previewContainerId);
+                const preview = document.getElementById(previewId);
+
+                if (previewContainer && preview && file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        preview.src = e.target.result;
+                        previewContainer.style.display = 'block';
+                    };
+                    reader.readAsDataURL(file);
+                }
             } else {
                 textDisplay.textContent = 'Ningún archivo seleccionado';
                 if (container) container.classList.remove('file-selected');
+
+                // Ocultar preview
+                const previewContainerId = inputId.replace('imagen', 'imagen_preview_container');
+                const previewContainer = document.getElementById(previewContainerId);
+                if (previewContainer) {
+                    previewContainer.style.display = 'none';
+                }
             }
         }
 

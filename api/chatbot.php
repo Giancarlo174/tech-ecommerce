@@ -69,9 +69,11 @@ if (empty($message)) {
 
 // Validación de seguridad usando la clase helper
 if (WestitoHelpers::containsDangerousKeywords($message)) {
+    $security_response = 'Solo puedo ayudarte con información de productos y tus pedidos.';
+    WestitoHelpers::logChatbotQuery($user_id === 'anonymous' ? null : $user_id, $message, $security_response, 'error', $conversation_id);
     echo json_encode([
         'success' => true,
-        'message' => 'Solo puedo ayudarte con información de productos y tus pedidos.',
+        'message' => $security_response,
         'conversation_id' => $conversation_id
     ]);
     exit;
@@ -79,6 +81,40 @@ if (WestitoHelpers::containsDangerousKeywords($message)) {
 
 // Sanitizar entrada usando helper
 $message = WestitoHelpers::sanitizeUserMessage($message);
+
+// Buscar en FAQs primero
+global $db;
+$faq_response = null;
+$best_similarity = 0;
+
+try {
+    $stmt = $db->prepare("SELECT pregunta, respuesta FROM faqs WHERE estado = 'activo'");
+    $stmt->execute();
+    $faqs = $stmt->fetchAll();
+
+    foreach ($faqs as $faq) {
+        $similarity = WestitoHelpers::calculateSimilarity($message, $faq['pregunta']);
+        if ($similarity > $best_similarity && $similarity > 0.6) { // Umbral de similitud
+            $best_similarity = $similarity;
+            $faq_response = $faq['respuesta'];
+        }
+    }
+} catch (Exception $e) {
+    // Si hay error en DB, continuar sin FAQs
+    error_log("Error al buscar FAQs: " . $e->getMessage());
+}
+
+// Si encontró una respuesta en FAQs, devolverla
+if ($faq_response) {
+    WestitoHelpers::logChatbotQuery($user_id === 'anonymous' ? null : $user_id, $message, $faq_response, 'faq', $conversation_id);
+    echo json_encode([
+        'success' => true,
+        'message' => $faq_response,
+        'conversation_id' => $conversation_id,
+        'source' => 'faq'
+    ]);
+    exit;
+}
 
 try {
     // Verificar si Gemini API está configurada usando la clase helper
@@ -93,9 +129,11 @@ try {
 
     // Saludo inicial usando helper
     if (WestitoHelpers::isGreeting($message)) {
+        $greeting_response = '¡Hola! Soy Westito, tu asistente de Westech Ecommerce. ¿En qué puedo ayudarte hoy? Puedo ayudarte con información sobre productos, categorías y marcas.';
+        WestitoHelpers::logChatbotQuery($user_id === 'anonymous' ? null : $user_id, $message, $greeting_response, 'ai', $conversation_id);
         echo json_encode([
             'success' => true,
-            'message' => '¡Hola! Soy Westito, tu asistente de Westech Ecommerce. ¿En qué puedo ayudarte hoy? Puedo ayudarte con información sobre productos, categorías y marcas.',
+            'message' => $greeting_response,
             'conversation_id' => $conversation_id
         ]);
         exit;
@@ -188,6 +226,8 @@ try {
     // Sanitizar respuesta del bot
     $bot_message = sanitizeInput($bot_message);
 
+    WestitoHelpers::logChatbotQuery($user_id === 'anonymous' ? null : $user_id, $message, $bot_message, 'ai', $conversation_id);
+
     echo json_encode([
         'success' => true,
         'message' => $bot_message,
@@ -204,9 +244,12 @@ try {
         'Estoy experimentando algunos problemas. Por favor, inténtalo nuevamente en un momento.'
     ];
     
+    $fallback_message = $fallback_responses[array_rand($fallback_responses)];
+    WestitoHelpers::logChatbotQuery($user_id === 'anonymous' ? null : $user_id, $message, $fallback_message, 'error', $conversation_id);
+
     echo json_encode([
         'success' => true,
-        'message' => $fallback_responses[array_rand($fallback_responses)],
+        'message' => $fallback_message,
         'conversation_id' => $conversation_id
     ]);
 }

@@ -22,10 +22,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = 'La contraseña debe tener al menos 6 caracteres';
     } else {
         //  Intenta registrar al nuevo usuario.
-        if ($auth->register($email, $password)) {
-            $success = 'Cuenta creada exitosamente. Puedes iniciar sesión ahora.';
-        } else {
-            $error = 'Error al crear la cuenta. El correo ya está registrado.';
+        try {
+            if ($auth->register($email, $password)) {
+                $success = 'Cuenta creada exitosamente. Puedes iniciar sesión ahora.';
+            } else {
+                $error = 'Error al crear la cuenta.';
+            }
+        } catch (PDOException $e) {
+            if ($e->getCode() == 23000) {
+                $error = 'Correo duplicado';
+            } else {
+                $error = 'Error al crear la cuenta.';
+            }
         }
     }
 }
@@ -35,8 +43,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!--  Utiliza SITE_NAME para el título de la página. -->
     <title>Registro - <?php echo SITE_NAME; ?></title>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         * {
             margin: 0;
@@ -215,6 +223,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (typeof WestitoChatbot !== 'undefined') {
                 window.westito = new WestitoChatbot();
             }
+            
+            // Mostrar alerta si hay error de correo duplicado
+            <?php if ($error === 'Correo duplicado'): ?>
+            Swal.fire({
+                icon: 'error',
+                title: 'Correo ya registrado',
+                text: 'El correo electrónico ya está registrado. Por favor, utiliza otro correo o inicia sesión.',
+                confirmButtonText: 'Entendido'
+            });
+            <?php endif; ?>
         });
     </script>
 </body>

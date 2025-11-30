@@ -5,6 +5,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const nombreInput = document.getElementById('nombre');
     const celularInput = document.getElementById('celular');
     const direccionInput = document.getElementById('direccion');
+    const cardNumberInput = document.getElementById('card_number');
+    const cardExpiryInput = document.getElementById('card_expiry');
+    const cardCvvInput = document.getElementById('card_cvv');
     const submitBtn = document.getElementById('submit-btn');
     
     // Cargar datos guardados del localStorage
@@ -40,6 +43,37 @@ document.addEventListener('DOMContentLoaded', function() {
                 localStorage.removeItem('datosEnvio');
             }
         }
+    }
+    
+    // Función para formatear número de tarjeta
+    function formatCardNumber(value) {
+        // Remover todos los caracteres no numéricos
+        const digits = value.replace(/\D/g, '');
+        // Limitar a 16 dígitos
+        const limited = digits.substring(0, 16);
+        // Agregar espacios cada 4 dígitos
+        return limited.replace(/(\d{4})(?=\d)/g, '$1 ');
+    }
+    
+    // Función para formatear fecha de expiración
+    function formatExpiry(value) {
+        // Remover todos los caracteres no numéricos
+        const digits = value.replace(/\D/g, '');
+        // Limitar a 4 dígitos (MMYY)
+        const limited = digits.substring(0, 4);
+        // Formato MM/YY
+        if (limited.length >= 2) {
+            return limited.substring(0, 2) + '/' + limited.substring(2);
+        }
+        return limited;
+    }
+    
+    // Función para formatear CVV
+    function formatCvv(value) {
+        // Remover todos los caracteres no numéricos
+        const digits = value.replace(/\D/g, '');
+        // Limitar a 3 dígitos
+        return digits.substring(0, 3);
     }
     
     // Función para mostrar error
@@ -109,7 +143,106 @@ document.addEventListener('DOMContentLoaded', function() {
         guardarDatos();
     });
     
-    // Validación general al enviar el formulario
+    // Formateo de número de tarjeta
+    if (cardNumberInput) {
+        cardNumberInput.addEventListener('input', function(e) {
+            const input = e.target;
+            const oldValue = input.value;
+            const oldCursor = input.selectionStart;
+            
+            // Formatear el valor
+            const formatted = formatCardNumber(input.value);
+            
+            // Si el valor cambió, actualizar
+            if (formatted !== oldValue) {
+                input.value = formatted;
+                
+                // Calcular nueva posición del cursor
+                let newCursor = oldCursor;
+                
+                // Contar dígitos antes del cursor en el valor anterior
+                const digitsBeforeCursor = oldValue.substring(0, oldCursor).replace(/\D/g, '').length;
+                
+                // Encontrar la posición correspondiente en el valor formateado
+                let digitCount = 0;
+                for (let i = 0; i < formatted.length; i++) {
+                    if (/\d/.test(formatted[i])) {
+                        digitCount++;
+                        if (digitCount > digitsBeforeCursor) {
+                            newCursor = i;
+                            break;
+                        }
+                    }
+                    if (digitCount === digitsBeforeCursor) {
+                        newCursor = i + 1;
+                    }
+                }
+                
+                // Asegurar que el cursor no exceda la longitud
+                newCursor = Math.min(newCursor, formatted.length);
+                
+                input.setSelectionRange(newCursor, newCursor);
+            }
+            
+            limpiarError(cardNumberInput);
+        });
+    }
+    
+    // Formateo de fecha de expiración
+    if (cardExpiryInput) {
+        cardExpiryInput.addEventListener('input', function(e) {
+            const input = e.target;
+            const oldValue = input.value;
+            const oldCursor = input.selectionStart;
+            
+            // Formatear el valor
+            const formatted = formatExpiry(input.value);
+            
+            // Si el valor cambió, actualizar
+            if (formatted !== oldValue) {
+                input.value = formatted;
+                
+                // Calcular nueva posición del cursor
+                let newCursor = oldCursor;
+                
+                // Contar dígitos antes del cursor en el valor anterior
+                const digitsBeforeCursor = oldValue.substring(0, oldCursor).replace(/\D/g, '').length;
+                
+                // Encontrar la posición correspondiente en el valor formateado
+                let digitCount = 0;
+                for (let i = 0; i < formatted.length; i++) {
+                    if (/\d/.test(formatted[i])) {
+                        digitCount++;
+                        if (digitCount > digitsBeforeCursor) {
+                            newCursor = i;
+                            break;
+                        }
+                    }
+                    if (digitCount === digitsBeforeCursor) {
+                        newCursor = i + 1;
+                    }
+                }
+                
+                // Asegurar que el cursor no exceda la longitud
+                newCursor = Math.min(newCursor, formatted.length);
+                
+                input.setSelectionRange(newCursor, newCursor);
+            }
+            
+            limpiarError(cardExpiryInput);
+        });
+    }
+    
+    // Formateo de CVV
+    if (cardCvvInput) {
+        cardCvvInput.addEventListener('input', function(e) {
+            const input = e.target;
+            const formatted = formatCvv(input.value);
+            input.value = formatted;
+            limpiarError(cardCvvInput);
+        });
+    }
+    
     checkoutForm.addEventListener('submit', function(e) {
         let hayError = false;
         

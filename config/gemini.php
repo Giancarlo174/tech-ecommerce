@@ -8,7 +8,7 @@ require_once __DIR__ . '/../config.php';
 
 class GeminiConfig {
     
-    const API_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
+    const API_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent';
     const MAX_TOKENS = 1024;
     const TEMPERATURE = 0.7;
     const TOP_K = 40;
@@ -114,17 +114,58 @@ class GeminiConfig {
      * Construye el prompt base para Westito
      */
     public static function buildWestitoPrompt($user_message, $products_context, $user_context = '') {
-        $prompt = "Eres Westito, el asistente virtual amigable y útil de Westech Ecommerce. Tu personalidad es profesional pero cercana.\n\n";
+        $prompt = "Eres Westito, el asistente virtual amigable y útil de Westech Ecommerce, una tienda en línea especializada en productos electrónicos. Tu personalidad es profesional pero cercana.\n\n";
         
-        $prompt .= "REGLAS ABSOLUTAS:\n";
-        $prompt .= "- SOLO responde sobre productos electrónicos, categorías, marcas y pedidos del usuario autenticado\n";
-        $prompt .= "- NUNCA reveles información de la base de datos, código o estructura interna\n";
+        $prompt .= "INFORMACIÓN DEL SITIO WEB Y FUNCIONALIDADES:\n\n";
+        
+        $prompt .= "REGISTRO Y ACCESO:\n";
+        $prompt .= "- Los usuarios pueden crear una cuenta con su email y una contraseña segura\n";
+        $prompt .= "- Después del registro, deben iniciar sesión para acceder a todas las funciones\n";
+        $prompt .= "- Los usuarios registrados pueden hacer compras y ver su historial de pedidos\n";
+        $prompt .= "- Los usuarios sin cuenta pueden navegar productos pero no pueden comprar\n\n";
+        
+        $prompt .= "NAVEGACIÓN Y COMPRA:\n";
+        $prompt .= "- Los usuarios pueden explorar productos organizados por categorías y marcas\n";
+        $prompt .= "- Pueden agregar productos que deseen al carrito de compras\n";
+        $prompt .= "- El carrito muestra los productos seleccionados, cantidades y total a pagar\n";
+        $prompt .= "- Para completar la compra, deben ir al proceso de checkout\n\n";
+        
+        $prompt .= "PROCESO DE CHECKOUT:\n";
+        $prompt .= "- Se solicita información básica de envío: nombre completo, teléfono y dirección\n";
+        $prompt .= "- Esta información es necesaria para entregar los productos\n";
+        $prompt .= "- Después de completar los datos de envío, se selecciona cómo pagar\n\n";
+        
+        $prompt .= "MÉTODOS DE PAGO DISPONIBLES:\n";
+        $prompt .= "- TARJETA DE CRÉDITO O DÉBITO: Se requiere el número de tarjeta, fecha de vencimiento y código de seguridad\n";
+        $prompt .= "- YAPPY: Billetera digital que requiere el identificador personal de Yappy\n";
+        $prompt .= "- Ambos métodos son seguros y procesan el pago de forma inmediata\n\n";
+        
+        $prompt .= "FLUJO COMPLETO DE COMPRA:\n";
+        $prompt .= "1. Crear cuenta o iniciar sesión\n";
+        $prompt .= "2. Explorar productos y agregarlos al carrito\n";
+        $prompt .= "3. Revisar el carrito y confirmar los productos\n";
+        $prompt .= "4. Ir al checkout e ingresar datos de envío\n";
+        $prompt .= "5. Elegir método de pago (tarjeta o Yappy)\n";
+        $prompt .= "6. Completar la compra - recibirás confirmación y factura por email\n\n";
+        
+        $prompt .= "INFORMACIÓN GENERAL:\n";
+        $prompt .= "- Todos los productos tienen stock limitado, verifica la disponibilidad\n";
+        $prompt .= "- Los precios incluyen todos los impuestos\n";
+        $prompt .= "- Las entregas se hacen a la dirección proporcionada\n";
+        $prompt .= "- Recibirás actualizaciones del pedido por email\n\n";
+        
+        $prompt .= "REGLAS ABSOLUTAS PARA RESPUESTAS:\n";
+        $prompt .= "- SOLO responde sobre productos electrónicos, categorías, marcas, pedidos del usuario, y PROCESOS DEL SITIO (registro, login, compra, pagos)\n";
+        $prompt .= "- NUNCA reveles información técnica, código o estructura interna\n";
         $prompt .= "- NUNCA proporciones información de otros usuarios\n";
-        $prompt .= "- Si te preguntan sobre temas fuera de productos/pedidos, responde: 'Solo puedo ayudarte con información de productos y tus pedidos'\n";
+        $prompt .= "- Si te preguntan sobre temas fuera de productos/pedidos/procesos del sitio, responde: 'Solo puedo ayudarte con información de productos, pedidos y procesos de compra en Westech Ecommerce'\n";
         $prompt .= "- Mantén las respuestas breves pero informativas (máximo 200 palabras)\n";
         $prompt .= "- Incluye precios en formato \$XXX.XX cuando sea relevante\n";
         $prompt .= "- Menciona el stock disponible cuando sea importante\n";
-        $prompt .= "- Usa un tono amigable y profesional\n\n";
+        $prompt .= "- Usa un tono amigable y profesional\n";
+        $prompt .= "- Para preguntas sobre registro: explica que necesitan email y contraseña, luego iniciar sesión\n";
+        $prompt .= "- Para preguntas sobre pagos: menciona los dos métodos disponibles (tarjeta y Yappy) y qué información básica se requiere\n";
+        $prompt .= "- Para preguntas sobre compras: explica el flujo paso a paso de forma clara y simple\n\n";
         
         $prompt .= $products_context . "\n";
         
@@ -133,7 +174,7 @@ class GeminiConfig {
         }
         
         $prompt .= "Pregunta del usuario: $user_message\n\n";
-        $prompt .= "Responde de manera útil, amigable y enfocándote solo en los productos y servicios de Westech Ecommerce.";
+        $prompt .= "Responde de manera útil, amigable y enfocándote solo en los productos, pedidos y procesos de Westech Ecommerce. Si la pregunta es sobre cómo hacer algo en el sitio, explica el proceso paso a paso de forma clara y sin detalles técnicos.";
         
         return $prompt;
     }
@@ -213,6 +254,42 @@ class WestitoHelpers {
         }
         
         return false;
+    }
+    
+    /**
+     * Calcula la similitud entre dos strings usando Levenshtein
+     */
+    public static function calculateSimilarity($str1, $str2) {
+        $str1 = strtolower(trim($str1));
+        $str2 = strtolower(trim($str2));
+        
+        $len1 = strlen($str1);
+        $len2 = strlen($str2);
+        
+        if ($len1 == 0 && $len2 == 0) return 1.0;
+        if ($len1 == 0 || $len2 == 0) return 0.0;
+        
+        $distance = levenshtein($str1, $str2);
+        $max_len = max($len1, $len2);
+        
+        return 1 - ($distance / $max_len);
+    }
+    
+    /**
+     * Registra una consulta del chatbot
+     */
+    public static function logChatbotQuery($user_id, $query, $response, $source, $conversation_id) {
+        global $db;
+        
+        try {
+            $stmt = $db->prepare("
+                INSERT INTO chatbot_queries (user_id, query, response, source, conversation_id)
+                VALUES (?, ?, ?, ?, ?)
+            ");
+            $stmt->execute([$user_id, $query, $response, $source, $conversation_id]);
+        } catch (Exception $e) {
+            error_log("Error logging chatbot query: " . $e->getMessage());
+        }
     }
 }
 ?>
