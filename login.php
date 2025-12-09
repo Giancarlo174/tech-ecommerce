@@ -229,7 +229,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             <button type="submit" class="btn">Iniciar Sesión</button>
         </form>
-        
+        <div style="margin-top:12px;text-align:right">
+            <a href="<?php echo BASE_URL; ?>cliente/password_reset.php">¿Olvidaste tu contraseña?</a>
+        </div>
+
         <div class="register-link">
             <a href="<?php echo BASE_URL; ?>registro.php">¿No tienes cuenta? Regístrate</a>
         </div>
