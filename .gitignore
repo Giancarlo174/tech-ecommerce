@@ -67,9 +67,6 @@ nbproject/
 # Carpetas especiales
 .github/
 
-# Archivos de documentación
-/docs/
-
 # Archivos de logs y depuración
 /logs/
 *.log

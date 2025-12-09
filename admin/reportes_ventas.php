@@ -40,7 +40,7 @@ $stmt = $db->prepare("SELECT pr.id, pr.nombre, pr.precio, SUM(pd.cantidad) as ca
     INNER JOIN pedidos pe ON pd.id_pedido = pe.id
     INNER JOIN productos pr ON pd.id_producto = pr.id
     WHERE DATE(pe.creado_en) BETWEEN ? AND ?
-    GROUP BY pr.id
+    GROUP BY pr.id, pr.nombre, pr.precio
     ORDER BY cantidad_vendida DESC
     LIMIT 10");
 $stmt->execute([$fecha_inicio, $fecha_fin]);
@@ -53,7 +53,7 @@ $stmt = $db->prepare("SELECT c.id, c.nombre, SUM(pd.cantidad) as cantidad, SUM(p
     INNER JOIN productos pr ON pd.id_producto = pr.id
     LEFT JOIN categorias c ON pr.id_categoria = c.id
     WHERE DATE(pe.creado_en) BETWEEN ? AND ?
-    GROUP BY c.id
+    GROUP BY c.id, c.nombre
     ORDER BY ingresos DESC");
 $stmt->execute([$fecha_inicio, $fecha_fin]);
 $categorias_top = $stmt->fetchAll();

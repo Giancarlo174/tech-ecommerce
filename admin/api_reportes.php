@@ -150,7 +150,7 @@ else if ($action === 'export_ventas') {
         INNER JOIN pedidos p ON pd.id_pedido = p.id
         INNER JOIN productos pr ON pd.id_producto = pr.id
         WHERE DATE(p.creado_en) BETWEEN ? AND ?
-        GROUP BY pr.id
+        GROUP BY pr.id, pr.nombre, pr.precio
         ORDER BY cantidad_vendida DESC
         LIMIT 20");
     $stmt->execute([$fecha_inicio, $fecha_fin]);
@@ -163,7 +163,7 @@ else if ($action === 'export_ventas') {
         INNER JOIN productos pr ON pd.id_producto = pr.id
         LEFT JOIN categorias c ON pr.id_categoria = c.id
         WHERE DATE(p.creado_en) BETWEEN ? AND ?
-        GROUP BY c.id
+        GROUP BY c.id, c.nombre
         ORDER BY ingresos DESC");
     $stmt->execute([$fecha_inicio, $fecha_fin]);
     $categorias = $stmt->fetchAll();
