@@ -325,9 +325,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             document.addEventListener('DOMContentLoaded', function () {
                 var buttons = document.querySelectorAll('.toggle-password');
                 buttons.forEach(function (btn) {
-                    
-                    // SE ELIMINÓ la lógica que sobrescribía el HTML del botón.
-                    
+                                        
                     btn.addEventListener('click', function () {
                         togglePasswordVisibility(btn);
                     });

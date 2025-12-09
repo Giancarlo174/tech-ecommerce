@@ -478,7 +478,7 @@ $valor_inventario = $stmt->fetch()['valor'] ?? 0;
         </div>
     </div>
 
-    <script src="<?php echo BASE_URL; ?>js/chatbot.js"></script>
+    <script src="<?php echo BASE_URL; ?>js/chatbot.js" charset="utf-8"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             if (typeof WestitoChatbot !== 'undefined') {

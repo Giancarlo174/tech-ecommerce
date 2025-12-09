@@ -833,6 +833,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     <!-- Script de validaciones -->
     <script src="<?php echo BASE_URL; ?>cliente/js/checkout-validations.js"></script>
-    <script src="<?php echo BASE_URL; ?>js/chatbot.js"></script>
+    <script src="<?php echo BASE_URL; ?>js/chatbot.js" charset="utf-8"></script>
 </body>
 </html>
