@@ -96,7 +96,6 @@ php_errors.log
 /apache/conf/extra/
 
 # Archivos de base de datos y dumps
-*.sql
 *.sqlite
 *.sqlite3
 *.db
