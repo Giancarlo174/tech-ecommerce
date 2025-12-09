@@ -3,6 +3,7 @@
 require_once '../config.php'; 
 require_once '../includes/auth.php';
 require_once '../includes/functions.php';
+require_once '../includes/alertas.php';
 
 $auth->requireAdmin();
 
@@ -28,6 +29,10 @@ $todayOrders = $stmt->fetch()['total'];
 $stmt = $db->prepare("SELECT SUM(total) as total FROM pedidos WHERE DATE(creado_en) = CURDATE()");
 $stmt->execute();
 $todayRevenue = $stmt->fetch()['total'] ?? 0;
+
+// Obtener alertas de inventario
+$alertasInventario = getResumenAlertasInventario();
+$productosAlertas = obtenerAlertasInventario(5);
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -269,6 +274,8 @@ $todayRevenue = $stmt->fetch()['total'] ?? 0;
             <a href="<?php echo BASE_URL; ?>admin/productos.php">Productos</a>
             <a href="<?php echo BASE_URL; ?>admin/categorias.php">Categorías</a>
             <a href="<?php echo BASE_URL; ?>admin/pedidos.php">Pedidos</a>
+            <a href="<?php echo BASE_URL; ?>admin/reportes_inventarios.php">Inventarios</a>
+            <a href="<?php echo BASE_URL; ?>admin/reportes_ventas.php">Reportes</a>
         </div>
         
         <div class="stats-grid">
@@ -284,7 +291,22 @@ $todayRevenue = $stmt->fetch()['total'] ?? 0;
                 <h3>Ingresos Hoy</h3>
                 <div class="value"><?php echo formatPrice($todayRevenue); ?></div>
             </div>
+            <div class="stat-card" style="background: <?php echo ($alertasInventario['critico'] > 0 ? '#fee' : '#fef3c7'); ?>; border-left: 4px solid <?php echo ($alertasInventario['critico'] > 0 ? '#ef4444' : '#f59e0b'); ?>;">
+                <h3>⚠️ Alertas Stock</h3>
+                <div class="value"><?php echo ($alertasInventario['critico'] ?? 0) + ($alertasInventario['bajo'] ?? 0); ?></div>
+            </div>
         </div>
+
+        <?php if (($alertasInventario['critico'] ?? 0) > 0 || ($alertasInventario['bajo'] ?? 0) > 0): ?>
+        <div style="background: #fef3c7; border: 1px solid #fcd34d; border-radius: 8px; padding: 1rem; margin-bottom: 2rem; color: #92400e;">
+            <strong>⚠️ Alertas de Inventario</strong>
+            <p style="margin-top: 0.5rem; font-size: 0.875rem;">
+                Tienes <strong><?php echo $alertasInventario['critico'] ?? 0; ?> productos sin stock</strong> y 
+                <strong><?php echo $alertasInventario['bajo'] ?? 0; ?> con stock bajo</strong>.
+                <a href="<?php echo BASE_URL; ?>admin/reportes_inventarios.php" style="color: #92400e; text-decoration: underline;">Ver reportes</a>
+            </p>
+        </div>
+        <?php endif; ?>
         
         <div class="content-grid">
             <div class="card">
@@ -327,6 +349,37 @@ $todayRevenue = $stmt->fetch()['total'] ?? 0;
                             </li>
                         <?php endforeach; ?>
                     </ul>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h2>⚠️ Productos con Alertas</h2>
+                    <a href="<?php echo BASE_URL; ?>admin/reportes_inventarios.php" class="btn btn-primary">Ver Todos</a>
+                </div>
+                <div class="card-content">
+                    <?php if (!empty($productosAlertas)): ?>
+                    <ul class="product-list">
+                        <?php foreach ($productosAlertas as $alert): ?>
+                            <li class="product-item">
+                                <div class="product-info">
+                                    <h4><?php echo htmlspecialchars($alert['nombre']); ?></h4>
+                                    <p><?php echo htmlspecialchars($alert['categoria'] ?? 'Sin categoría'); ?></p>
+                                </div>
+                                <div>
+                                    <div class="price">Stock: <?php echo $alert['stock']; ?></div>
+                                    <div class="stock" style="color: <?php echo ($alert['stock'] == 0 ? '#ef4444' : '#f59e0b'); ?>;">
+                                        <?php echo ($alert['stock'] == 0 ? '🔴 Crítico' : '🟠 Bajo'); ?>
+                                    </div>
+                                </div>
+                            </li>
+                        <?php endforeach; ?>
+                    </ul>
+                    <?php else: ?>
+                    <p style="color: #9ca3af; text-align: center; padding: 2rem;">
+                        ✅ No hay alertas de inventario
+                    </p>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
